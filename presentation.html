@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Data Explorer - Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e17;
+            --bg-slide: #0f1420;
+            --surface: #151b2b;
+            --accent: #38bdf8;
+            --accent-dim: #0ea5e9;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --success: #34d399;
+            --warning: #fbbf24;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation {
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            transform: translateX(50px);
+            background: var(--bg-slide);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .slide-content {
+            max-width: 1200px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--accent), #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: var(--accent);
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+
+        p {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.6rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            margin: 0.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+        }
+
+        .card h4 {
+            font-size: 1.3rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .card p {
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .card li {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .card li:last-child {
+            border-bottom: none;
+        }
+
+        .architecture {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .arch-box {
+            background: var(--surface);
+            border: 2px solid;
+            border-radius: 16px;
+            padding: 2rem 3rem;
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .arch-box.bronze {
+            border-color: #cd7f32;
+        }
+
+        .arch-box.silver {
+            border-color: #c0c0c0;
+        }
+
+        .arch-box.gold {
+            border-color: #ffd700;
+        }
+
+        .arch-box h4 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .arch-box.bronze h4 { color: #cd7f32; }
+        .arch-box.silver h4 { color: #c0c0c0; }
+        .arch-box.gold h4 { color: #ffd700; }
+
+        .arch-box p {
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: var(--text-muted);
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .tech-item {
+            background: var(--surface);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            margin-top: 3rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .code-block {
+            background: #1a1f2e;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            text-align: left;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-top: 2rem;
+            display: inline-block;
+        }
+
+        .code-block .keyword { color: #c792ea; }
+        .code-block .string { color: #c3e88d; }
+        .code-block .comment { color: #546e7a; }
+
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: var(--surface);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: var(--text);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--bg-dark);
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        .list-left {
+            text-align: left;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .list-left li {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            list-style: none;
+        }
+
+        .list-left li::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            margin-right: 1rem;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .two-cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            text-align: left;
+        }
+
+        .formula {
+            background: var(--surface);
+            border-left: 4px solid var(--accent);
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 1rem;
+            color: var(--success);
+        }
+
+        @media (max-width: 900px) {
+            h1 { font-size: 2.5rem; }
+            h2 { font-size: 2rem; }
+            .grid-3 { grid-template-columns: 1fr; }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .architecture { flex-direction: column; }
+            .arrow { transform: rotate(90deg); }
+            .stats { flex-direction: column; gap: 2rem; }
+            .two-cols { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progress"></div>
+
+    <div class="presentation" id="presentation">
+        <!-- Slide 1: Title -->
+        <div class="slide active" data-slide="1">
+            <div class="slide-content">
+                <h1>Urban Data Explorer</h1>
+                <p class="subtitle">Dashboard Immobilier Paris - Comparaison par Arrondissement</p>
+                <div>
+                    <span class="badge">Architecture Medallion</span>
+                    <span class="badge">FastAPI</span>
+                    <span class="badge">MapLibre GL</span>
+                </div>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value">20</div>
+                        <div class="stat-label">Arrondissements</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">17</div>
+                        <div class="stat-label">Indicateurs</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">15+</div>
+                        <div class="stat-label">Endpoints API</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Contexte -->
+        <div class="slide" data-slide="2">
+            <div class="slide-content">
+                <h2>Contexte du Projet</h2>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <h4>Problematique</h4>
+                        <p>Difficulte a comparer les arrondissements parisiens sur plusieurs criteres : prix, qualite de vie, accessibilite.</p>
+                    </div>
+                    <div class="card">
+                        <h4>Solution</h4>
+                        <p>Dashboard interactif centralisant les donnees immobilieres et socio-economiques de Paris.</p>
+                    </div>
+                    <div class="card">
+                        <h4>Objectif</h4>
+                        <p>Aide a la decision pour l'achat ou la location dans les 20 arrondissements de Paris.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Architecture Medallion -->
+        <div class="slide" data-slide="3">
+            <div class="slide-content">
+                <h2>Architecture Medallion</h2>
+                <p>Pipeline de donnees en 3 couches pour garantir la qualite et la tracabilite</p>
+                <div class="architecture">
+                    <div class="arch-box bronze">
+                        <h4>Bronze</h4>
+                        <p>Donnees brutes</p>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">APIs externes</p>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="arch-box silver">
+                        <h4>Silver</h4>
+                        <p>Donnees nettoyees</p>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">Validation</p>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="arch-box gold">
+                        <h4>Gold</h4>
+                        <p>Donnees enrichies</p>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">Production</p>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <span class="comment"># Execution du pipeline</span><br>
+                    <span class="keyword">python</span> pipeline.py <span class="comment"># Bronze → Silver → Gold</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Stack Technique -->
+        <div class="slide" data-slide="4">
+            <div class="slide-content">
+                <h2>Stack Technique</h2>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <h4>Backend</h4>
+                        <ul>
+                            <li>Python 3.11+</li>
+                            <li>FastAPI</li>
+                            <li>PostgreSQL</li>
+                            <li>MongoDB</li>
+                            <li>Redis / Kafka</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Frontend</h4>
+                        <ul>
+                            <li>HTML5 / CSS3</li>
+                            <li>JavaScript ES6+</li>
+                            <li>MapLibre GL JS</li>
+                            <li>Chart.js</li>
+                            <li>LocalStorage Cache</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>DevOps</h4>
+                        <ul>
+                            <li>Docker Compose</li>
+                            <li>GitHub Actions</li>
+                            <li>MinIO (Data Lake)</li>
+                            <li>GZip Compression</li>
+                            <li>CI/CD Pipeline</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Sources de Donnees -->
+        <div class="slide" data-slide="5">
+            <div class="slide-content">
+                <h2>Sources de Donnees</h2>
+                <p>Donnees Open Data officielles et actualisees</p>
+                <div class="grid">
+                    <div class="card">
+                        <h4>DVF (data.gouv.fr)</h4>
+                        <p>Transactions immobilieres : prix au m2, surfaces, volumes de ventes</p>
+                    </div>
+                    <div class="card">
+                        <h4>OpenData Paris</h4>
+                        <p>Loyers de reference, vegetation, transports, qualite de l'air</p>
+                    </div>
+                    <div class="card">
+                        <h4>SSMSI</h4>
+                        <p>Statistiques de delinquance par commune et arrondissement</p>
+                    </div>
+                    <div class="card">
+                        <h4>Filosofi / RPLS</h4>
+                        <p>Revenus des menages et taux de logements sociaux</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Indicateurs -->
+        <div class="slide" data-slide="6">
+            <div class="slide-content">
+                <h2>17 Indicateurs Metier</h2>
+                <div class="grid grid-4" style="font-size: 0.9rem;">
+                    <div class="card">
+                        <h4 style="color: var(--accent);">Immobilier</h4>
+                        <ul style="font-size: 0.85rem;">
+                            <li><span class="highlight">Prix/m2</span></li>
+                            <li><span class="highlight">Loyers</span></li>
+                            <li><span class="highlight">Logements sociaux</span></li>
+                            <li><span class="highlight">Accessibilite</span></li>
+                            <li><span class="highlight">Tension locative</span></li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4 style="color: var(--accent);">Socio-eco</h4>
+                        <ul style="font-size: 0.85rem;">
+                            <li><span class="highlight">Revenus</span></li>
+                            <li><span class="highlight">Densite</span></li>
+                            <li><span class="highlight">Delinquance</span></li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4 style="color: var(--accent);">Environnement</h4>
+                        <ul style="font-size: 0.85rem;">
+                            <li><span class="highlight">Qualite air</span></li>
+                            <li><span class="highlight">Vegetation</span></li>
+                            <li><span class="highlight">Transports</span></li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4 style="color: var(--success);">Sante</h4>
+                        <ul style="font-size: 0.85rem;">
+                            <li><span class="highlight">Score Sante</span></li>
+                            <li><span class="highlight">Pharmacies</span></li>
+                            <li><span class="highlight">Defibrillateurs</span></li>
+                            <li><span class="highlight">Acces urgences</span></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="grid grid-2" style="margin-top: 1rem;">
+                    <div class="card" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(99, 102, 241, 0.1));">
+                        <h4 style="color: var(--accent);">Score Global</h4>
+                        <p style="font-size: 0.9rem;">Indicateur composite pondere (0-100) pour comparer la qualite de vie</p>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, rgba(52, 211, 153, 0.1), rgba(163, 230, 53, 0.1));">
+                        <h4 style="color: var(--success);">Potentiel Plus-Value</h4>
+                        <p style="font-size: 0.9rem;">Estimation du potentiel de valorisation future (0-100)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Score Global (NOUVEAU) -->
+        <div class="slide" data-slide="7">
+            <div class="slide-content">
+                <h2>Score Global Qualite de Vie</h2>
+                <p>Indicateur composite pondere pour comparer les arrondissements</p>
+                <div class="grid grid-3" style="margin-top: 2rem;">
+                    <div class="card">
+                        <h4>Ponderations</h4>
+                        <ul>
+                            <li>Accessibilite : 20%</li>
+                            <li>Prix : 15%</li>
+                            <li>Securite : 15%</li>
+                            <li>Transports : 15%</li>
+                            <li>Revenus : 10%</li>
+                            <li>Vegetation : 10%</li>
+                            <li>Air : 10%</li>
+                            <li>Logements sociaux : 5%</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Calcul</h4>
+                        <div class="formula">Score = Sum(indicateur_normalise x poids)</div>
+                        <p style="font-size: 1rem; margin-top: 1rem;">Chaque indicateur est normalise sur une echelle 0-100 avant ponderation</p>
+                    </div>
+                    <div class="card">
+                        <h4>Resultat</h4>
+                        <ul>
+                            <li>Score de 0 a 100</li>
+                            <li>Classement 1er a 20e</li>
+                            <li>Barre de progression</li>
+                            <li>Couleur sur la carte</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Potentiel Plus-Value (NOUVEAU) -->
+        <div class="slide" data-slide="8">
+            <div class="slide-content">
+                <h2>Potentiel Plus-Value</h2>
+                <p>Formule creative pour estimer le potentiel de valorisation future</p>
+                <div class="grid" style="margin-top: 2rem;">
+                    <div class="card">
+                        <h4>Prix Accessible</h4>
+                        <p>Arrondissements a prix encore moderere = potentiel de hausse</p>
+                        <div class="formula">prix &lt; 10k = +30pts | prix &lt; 12k = +20pts</div>
+                    </div>
+                    <div class="card">
+                        <h4>Dynamique Recente</h4>
+                        <p>Tendance positive des prix = marche porteur</p>
+                        <div class="formula">variation &gt; 3% = +25pts | variation &gt; 0 = +15pts</div>
+                    </div>
+                    <div class="card">
+                        <h4>Desserte Transports</h4>
+                        <p>Bonne connexion = attractivite future</p>
+                        <div class="formula">transports &gt; 40 = +20pts | &gt; 20 = +15pts</div>
+                    </div>
+                    <div class="card">
+                        <h4>Cadre de Vie</h4>
+                        <p>Vegetation, mixite sociale, securite</p>
+                        <div class="formula">arbres + mixite + securite = jusqu'a +35pts</div>
+                    </div>
+                </div>
+                <div style="margin-top: 2rem;">
+                    <span class="badge">Eleve &gt; 70</span>
+                    <span class="badge">Moyen 45-70</span>
+                    <span class="badge">Faible &lt; 45</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Formules de Calcul -->
+        <div class="slide" data-slide="9">
+            <div class="slide-content">
+                <h2>Indicateurs avec Formules</h2>
+                <p>Calculs personnalises pour des metriques pertinentes</p>
+                <div class="grid">
+                    <div class="card">
+                        <h4>Accessibilite Logement</h4>
+                        <div class="formula">(prix_m2 x 50) / (revenu_median / 12)</div>
+                        <p>Nombre de mois de revenu necessaires pour acheter 50m2</p>
+                    </div>
+                    <div class="card">
+                        <h4>Tension Locative</h4>
+                        <div class="formula">(loyer_m2 x 50 x 12) / revenu_median x 100</div>
+                        <p>Part du revenu consacree au loyer (50m2)</p>
+                    </div>
+                    <div class="card">
+                        <h4>Qualite de l'Air</h4>
+                        <div class="formula">moyenne_ponderee(jours_par_qualite)</div>
+                        <p>Indice ATMO adapte a chaque arrondissement</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: API REST -->
+        <div class="slide" data-slide="10">
+            <div class="slide-content">
+                <h2>API REST FastAPI</h2>
+                <p>15+ endpoints documentes avec Swagger</p>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <h4>Donnees</h4>
+                        <ul>
+                            <li>GET /arrondissements</li>
+                            <li>GET /prix?annee=2024</li>
+                            <li>GET /pollution</li>
+                            <li>GET /timeline?arr=6</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Analyse</h4>
+                        <ul>
+                            <li>GET /comparaison</li>
+                            <li>GET /ranking</li>
+                            <li>GET /geo-points</li>
+                            <li>GET /freshness</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Export</h4>
+                        <ul>
+                            <li>GET /export/csv</li>
+                            <li>GET /export/parquet</li>
+                            <li>GET /export/geojson</li>
+                            <li>GET /docs (Swagger)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="code-block">
+                    curl http://localhost:8001/arrondissements | jq '.data[0]'
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Dashboard -->
+        <div class="slide" data-slide="11">
+            <div class="slide-content">
+                <h2>Dashboard Interactif</h2>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <h4>Carte Choroplethe</h4>
+                        <p>Visualisation geographique avec MapLibre GL JS. Coloration par indicateur, zoom sur Paris.</p>
+                    </div>
+                    <div class="card">
+                        <h4>Selection d'Indicateurs</h4>
+                        <p>11 indicateurs organises par categorie : Immobilier, Socio-economique, Environnement.</p>
+                    </div>
+                    <div class="card">
+                        <h4>Graphiques</h4>
+                        <p>Evolution temporelle, distribution des prix, comparaison entre arrondissements.</p>
+                    </div>
+                </div>
+                <div class="stats" style="margin-top: 3rem;">
+                    <div class="stat">
+                        <div class="stat-value" style="font-size: 2.5rem;">11ms</div>
+                        <div class="stat-label">Temps de reponse</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" style="font-size: 2.5rem;">91%</div>
+                        <div class="stat-label">Compression GZip</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" style="font-size: 2.5rem;">5 min</div>
+                        <div class="stat-label">Cache local</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Pipeline CI/CD -->
+        <div class="slide" data-slide="12">
+            <div class="slide-content">
+                <h2>Pipeline CI/CD</h2>
+                <p>Automatisation complete avec GitHub Actions</p>
+                <div class="architecture">
+                    <div class="arch-box" style="border-color: var(--accent);">
+                        <h4 style="color: var(--accent);">Collecte</h4>
+                        <p>APIs Open Data</p>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="arch-box" style="border-color: var(--warning);">
+                        <h4 style="color: var(--warning);">Traitement</h4>
+                        <p>Nettoyage</p>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="arch-box" style="border-color: var(--success);">
+                        <h4 style="color: var(--success);">Publication</h4>
+                        <p>Gold + Export</p>
+                    </div>
+                </div>
+                <div class="grid" style="margin-top: 3rem;">
+                    <div class="card">
+                        <h4>Planification</h4>
+                        <p>Execution automatique chaque lundi a 6h via GitHub Actions</p>
+                    </div>
+                    <div class="card">
+                        <h4>Notification</h4>
+                        <p>Redis Streams et Kafka pour la propagation des evenements</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Securite et Quotas API -->
+        <div class="slide" data-slide="13">
+            <div class="slide-content">
+                <h2>Securite et Quotas API</h2>
+                <p>Protection avancee contre les abus</p>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <h4>Rate Limiting</h4>
+                        <ul>
+                            <li>60 requetes/min/IP</li>
+                            <li>1000 requetes/jour/IP</li>
+                            <li>Limites par endpoint</li>
+                            <li>Headers X-RateLimit-*</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Endpoints Sensibles</h4>
+                        <ul>
+                            <li>/export : 10 req/min</li>
+                            <li>/geo-points : 20 req/min</li>
+                            <li>/comparaison : 30 req/min</li>
+                            <li>Monitoring /quota-usage</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Reponses</h4>
+                        <ul>
+                            <li>HTTP 429 si depasse</li>
+                            <li>Header Retry-After</li>
+                            <li>Tracking des blocages</li>
+                            <li>Stats par IP</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: UX et Light Mode -->
+        <div class="slide" data-slide="14">
+            <div class="slide-content">
+                <h2>Experience Utilisateur</h2>
+                <div class="grid grid-2" style="margin-bottom: 1.5rem;">
+                    <div class="card">
+                        <h4>Light Mode</h4>
+                        <ul>
+                            <li>Theme clair/sombre</li>
+                            <li>Toggle en 1 clic</li>
+                            <li>Preference sauvegardee</li>
+                            <li>CSS variables</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Performance</h4>
+                        <ul>
+                            <li>Cache localStorage 5min</li>
+                            <li>Compression GZip 91%</li>
+                            <li>Temps reponse 11ms</li>
+                            <li>Loading indicator</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h4>Accessibilite</h4>
+                        <ul>
+                            <li>Navigation clavier</li>
+                            <li>ARIA labels</li>
+                            <li>Contraste optimal</li>
+                            <li>Responsive design</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Panneau Selection</h4>
+                        <ul>
+                            <li>Zone agrandie (320px min)</li>
+                            <li>Polices plus grandes</li>
+                            <li>Scroll optimise</li>
+                            <li>Details complets par arr.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: Indicateurs Sante de Proximite (NOUVEAU) -->
+        <div class="slide" data-slide="15">
+            <div class="slide-content">
+                <span class="badge">Nouveau</span>
+                <h2>Sante de Proximite</h2>
+                <p>Accessibilite aux services de sante par arrondissement</p>
+                <div class="grid grid-3" style="margin-top: 2rem;">
+                    <div class="card">
+                        <h4>Donnees collectees</h4>
+                        <ul>
+                            <li><span class="highlight">Pharmacies</span> - total + gardes</li>
+                            <li><span class="highlight">Defibrillateurs</span> - DAE publics</li>
+                            <li><span class="highlight">Dentistes</span> - cabinets</li>
+                            <li><span class="highlight">Medecins</span> - generalistes</li>
+                            <li><span class="highlight">Centres sante</span> - municipaux</li>
+                            <li><span class="highlight">Hopitaux</span> - proximite urgences</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Score Sante Proximite</h4>
+                        <div class="code-block">
+                            <span class="comment"># Ponderations</span><br>
+                            pharmacies: 20%<br>
+                            medecins: 20%<br>
+                            urgences: 20%<br>
+                            dentistes: 15%<br>
+                            DAE: 10%<br>
+                            centres: 10%<br>
+                            hopitaux: 5%
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4>Visualisation carte</h4>
+                        <p style="font-size: 1rem; margin-bottom: 1rem;">Code couleur adapte :</p>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="display: inline-block; width: 20px; height: 20px; background: #ef4444; border-radius: 4px;"></span>
+                            <span style="font-size: 0.9rem;">Faible acces</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="display: inline-block; width: 20px; height: 20px; background: #fbbf24; border-radius: 4px;"></span>
+                            <span style="font-size: 0.9rem;">Moyen</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="display: inline-block; width: 20px; height: 20px; background: #34d399; border-radius: 4px;"></span>
+                            <span style="font-size: 0.9rem;">Excellent acces</span>
+                        </div>
+                        <p style="font-size: 0.85rem; margin-top: 1rem; color: var(--text-muted);">+ Graphique radar dans Analyses</p>
+                    </div>
+                </div>
+                <p style="margin-top: 1.5rem; font-size: 1rem;">Sources: OpenData Paris, FINESS, Assurance Maladie</p>
+            </div>
+        </div>
+
+        <!-- Slide 16: Demo -->
+        <div class="slide" data-slide="16">
+            <div class="slide-content">
+                <h2>Demonstration</h2>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" style="font-size: 2rem;">1.</div>
+                        <div class="stat-label">Lancer le serveur</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" style="font-size: 2rem;">2.</div>
+                        <div class="stat-label">Ouvrir le dashboard</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" style="font-size: 2rem;">3.</div>
+                        <div class="stat-label">Explorer les indicateurs</div>
+                    </div>
+                </div>
+                <div class="code-block" style="margin-top: 3rem;">
+                    <span class="comment"># Installation et lancement</span><br>
+                    pip install -r requirements.txt<br>
+                    python pipeline.py<br>
+                    python run.py<br><br>
+                    <span class="comment"># Acces au dashboard</span><br>
+                    <span class="string">http://localhost:8001/dashboard/</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Conclusion -->
+        <div class="slide" data-slide="17">
+            <div class="slide-content">
+                <h2>Conclusion</h2>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <h4>Points Forts</h4>
+                        <ul>
+                            <li>Architecture robuste</li>
+                            <li>Donnees actualisees</li>
+                            <li>Performance optimisee</li>
+                            <li>Interface intuitive</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Competences RNCP</h4>
+                        <ul>
+                            <li>Pipeline de donnees</li>
+                            <li>API REST</li>
+                            <li>Visualisation</li>
+                            <li>DevOps / CI-CD</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Evolutions</h4>
+                        <ul>
+                            <li>Maille IRIS</li>
+                            <li>Machine Learning</li>
+                            <li>Temps reel</li>
+                            <li>Multi-villes</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="margin-top: 3rem;">
+                    <span class="badge">Merci de votre attention</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-controls">
+        <button class="nav-btn" id="prevBtn">Precedent</button>
+        <button class="nav-btn" id="nextBtn">Suivant</button>
+    </div>
+
+    <div class="slide-counter" id="counter">1 / 17</div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let currentSlide = 1;
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+
+            currentSlide = n;
+
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active');
+                if (index + 1 === currentSlide) {
+                    slide.classList.add('active');
+                }
+            });
+
+            document.getElementById('counter').textContent = `${currentSlide} / ${totalSlides}`;
+            document.getElementById('progress').style.width = `${(currentSlide / totalSlides) * 100}%`;
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            showSlide(currentSlide + 1);
+        });
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            showSlide(currentSlide - 1);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                showSlide(currentSlide + 1);
+            } else if (e.key === 'ArrowLeft') {
+                showSlide(currentSlide - 1);
+            } else if (e.key === 'Home') {
+                showSlide(1);
+            } else if (e.key === 'End') {
+                showSlide(totalSlides);
+            }
+        });
+
+        // Touch support
+        let touchStartX = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const diff = touchStartX - touchEndX;
+
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) {
+                    showSlide(currentSlide + 1);
+                } else {
+                    showSlide(currentSlide - 1);
+                }
+            }
+        });
+
+        // Initialize
+        showSlide(1);
+    </script>
+</body>
+</html>

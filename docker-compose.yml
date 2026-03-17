@@ -1,0 +1,185 @@
+# Urban Data Explorer — plateforme data (RNCP)
+# Démarrage : docker compose up -d
+# API : http://localhost:8000 (nginx → 2 replicas)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ude_admin
+      POSTGRES_PASSWORD: ude_admin_dev
+      POSTGRES_DB: urban_data
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ude_admin -d urban_data"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  kafka:
+    image: apache/kafka:latest
+    hostname: kafka
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ude_minio
+      MINIO_ROOT_PASSWORD: ude_minio_secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api1:
+    build: .
+    environment:
+      POSTGRES_URL: postgresql://ude_admin:ude_admin_dev@postgres:5432/urban_data
+      POSTGRES_READER_URL: postgresql://ude_reader:ude_reader_dev@postgres:5432/urban_data
+      MONGO_URL: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: ude.pipeline.events
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ude_minio
+      MINIO_SECRET_KEY: ude_minio_secret
+      MINIO_SECURE: "false"
+      DATA_BACKEND: auto
+      CORS_ORIGINS: http://localhost:8000,http://127.0.0.1:5500,http://localhost:5500
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api2:
+    build: .
+    environment:
+      POSTGRES_URL: postgresql://ude_admin:ude_admin_dev@postgres:5432/urban_data
+      POSTGRES_READER_URL: postgresql://ude_reader:ude_reader_dev@postgres:5432/urban_data
+      MONGO_URL: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: ude.pipeline.events
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ude_minio
+      MINIO_SECRET_KEY: ude_minio_secret
+      MINIO_SECURE: "false"
+      DATA_BACKEND: auto
+      CORS_ORIGINS: http://localhost:8000,http://127.0.0.1:5500,http://localhost:5500
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api1
+      - api2
+
+  stream-consumer:
+    build: .
+    command: python -m services.stream_consumer
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      POSTGRES_URL: postgresql://ude_admin:ude_admin_dev@postgres:5432/urban_data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  kafka-consumer:
+    build: .
+    command: python -m services.kafka_consumer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: ude.pipeline.events
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  mongodata:
+  miniodata:

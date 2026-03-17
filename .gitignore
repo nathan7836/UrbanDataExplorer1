@@ -1,0 +1,47 @@
+# Données
+data/bronze/*
+!data/bronze/.gitkeep
+!data/bronze/real_estate_data_latest.json
+
+data/silver/*
+!data/silver/.gitkeep
+!data/silver/real_estate_data_silver_latest.json
+
+data/gold/*
+!data/gold/.gitkeep
+!data/gold/real_estate_data_gold_latest.json
+
+data/export/*
+!data/export/.gitkeep
+
+# Logs
+*.log
+data_fetcher.log
+
+# Cache APIs publiques
+data/bronze/raw_cache/
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
