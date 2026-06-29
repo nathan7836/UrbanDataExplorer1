@@ -351,6 +351,7 @@ async function loadData(forceRefresh = false) {
             updateFreshnessFromPayload(cached.freshness);
             updateLogementsSociauxChart();
             updateAccessibiliteChart();
+            updateSanteChart();
             updateIndicatorFormulaPanel();
             updateUniformDataNotice();
             return;
@@ -370,6 +371,7 @@ async function loadData(forceRefresh = false) {
         console.log('Donnees chargees depuis API:', allData.length, 'arrondissements');
         updateLogementsSociauxChart();
         updateAccessibiliteChart();
+        updateSanteChart();
         updateIndicatorFormulaPanel();
         updateUniformDataNotice();
     } catch (error) {
@@ -1988,6 +1990,7 @@ function initializeCharts() {
     updateComparisonChart();
     updateTypologyChart();
     updateTransportsChart();
+    updateSanteChart();
 }
 
 // Graphique timeline

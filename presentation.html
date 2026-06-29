@@ -402,7 +402,7 @@
                         <div class="stat-label">Indicateurs</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-value">15+</div>
+                        <div class="stat-value">30+</div>
                         <div class="stat-label">Endpoints API</div>
                     </div>
                 </div>
@@ -681,7 +681,7 @@
         <div class="slide" data-slide="10">
             <div class="slide-content">
                 <h2>API REST FastAPI</h2>
-                <p>15+ endpoints documentes avec Swagger</p>
+                <p>30+ endpoints documentes avec Swagger (/docs)</p>
                 <div class="grid grid-3">
                     <div class="card">
                         <h4>Donnees</h4>
@@ -696,17 +696,17 @@
                         <h4>Analyse</h4>
                         <ul>
                             <li>GET /comparaison</li>
-                            <li>GET /ranking</li>
-                            <li>GET /geo-points</li>
-                            <li>GET /freshness</li>
+                            <li>GET /summary</li>
+                            <li>GET /mongo/geo-points</li>
+                            <li>GET /platform/freshness</li>
                         </ul>
                     </div>
                     <div class="card">
-                        <h4>Export</h4>
+                        <h4>Plateforme</h4>
                         <ul>
-                            <li>GET /export/csv</li>
-                            <li>GET /export/parquet</li>
-                            <li>GET /export/geojson</li>
+                            <li>GET /platform/governance</li>
+                            <li>GET /health</li>
+                            <li>GET /sql/accessibilite</li>
                             <li>GET /docs (Swagger)</li>
                         </ul>
                     </div>
@@ -728,17 +728,17 @@
                     </div>
                     <div class="card">
                         <h4>Selection d'Indicateurs</h4>
-                        <p>11 indicateurs organises par categorie : Immobilier, Socio-economique, Environnement.</p>
+                        <p>17 indicateurs sur la carte (Immobilier, Socio-eco, Environnement, Sante, Scores).</p>
                     </div>
                     <div class="card">
                         <h4>Graphiques</h4>
-                        <p>Evolution temporelle, distribution des prix, comparaison entre arrondissements.</p>
+                        <p>7 graphiques Chart.js : prix, logements sociaux, accessibilite, typologie, transports, sante.</p>
                     </div>
                 </div>
                 <div class="stats" style="margin-top: 3rem;">
                     <div class="stat">
-                        <div class="stat-value" style="font-size: 2.5rem;">11ms</div>
-                        <div class="stat-label">Temps de reponse</div>
+                        <div class="stat-value" style="font-size: 2.5rem;">~150ms</div>
+                        <div class="stat-label">Enrichissement API</div>
                     </div>
                     <div class="stat">
                         <div class="stat-value" style="font-size: 2.5rem;">91%</div>
@@ -755,8 +755,8 @@
         <!-- Slide 12: Pipeline CI/CD -->
         <div class="slide" data-slide="12">
             <div class="slide-content">
-                <h2>Pipeline CI/CD</h2>
-                <p>Automatisation complete avec GitHub Actions</p>
+                <h2>Pipeline &amp; CI/CD</h2>
+                <p>GitHub Actions : pipeline donnees (lundi 6h) + deploiement dashboard Pages</p>
                 <div class="architecture">
                     <div class="arch-box" style="border-color: var(--accent);">
                         <h4 style="color: var(--accent);">Collecte</h4>
@@ -780,7 +780,11 @@
                     </div>
                     <div class="card">
                         <h4>Notification</h4>
-                        <p>Redis Streams et Kafka pour la propagation des evenements</p>
+                        <p>Redis Streams et Kafka (optionnels) — invalidation cache API</p>
+                    </div>
+                    <div class="card">
+                        <h4>Tests</h4>
+                        <p>18 tests pytest en local (API, enrichissement, SQL) — hors workflow CI</p>
                     </div>
                 </div>
             </div>
@@ -795,8 +799,8 @@
                     <div class="card">
                         <h4>Rate Limiting</h4>
                         <ul>
-                            <li>60 requetes/min/IP</li>
-                            <li>1000 requetes/jour/IP</li>
+                            <li>100 requetes/min/IP</li>
+                            <li>500 requetes/jour/IP</li>
                             <li>Limites par endpoint</li>
                             <li>Headers X-RateLimit-*</li>
                         </ul>
@@ -804,10 +808,10 @@
                     <div class="card">
                         <h4>Endpoints Sensibles</h4>
                         <ul>
-                            <li>/export : 10 req/min</li>
-                            <li>/geo-points : 20 req/min</li>
-                            <li>/comparaison : 30 req/min</li>
-                            <li>Monitoring /quota-usage</li>
+                            <li>/export : 5 req/min</li>
+                            <li>/geo-points : 10 req/min</li>
+                            <li>/comparaison : 15 req/min</li>
+                            <li>GET /platform/quota-usage</li>
                         </ul>
                     </div>
                     <div class="card">
@@ -842,7 +846,7 @@
                         <ul>
                             <li>Cache localStorage 5min</li>
                             <li>Compression GZip 91%</li>
-                            <li>Temps reponse 11ms</li>
+                            <li>Enrichissement ~150 ms</li>
                             <li>Loading indicator</li>
                         </ul>
                     </div>
@@ -919,7 +923,7 @@
                         <p style="font-size: 0.85rem; margin-top: 1rem; color: var(--text-muted);">+ Graphique radar dans Analyses</p>
                     </div>
                 </div>
-                <p style="margin-top: 1.5rem; font-size: 1rem;">Sources: OpenData Paris, FINESS, Assurance Maladie</p>
+                <p style="margin-top: 1.5rem; font-size: 1rem;">Sources: referentiels agreges (sante_data.js) — Open Data / FINESS, pas d'API temps reel</p>
             </div>
         </div>
 
@@ -945,7 +949,7 @@
                     <span class="comment"># Installation et lancement</span><br>
                     pip install -r requirements.txt<br>
                     python pipeline.py<br>
-                    python run.py<br><br>
+                    python api.py<br><br>
                     <span class="comment"># Acces au dashboard</span><br>
                     <span class="string">http://localhost:8001/dashboard/</span>
                 </div>
@@ -985,7 +989,11 @@
                         </ul>
                     </div>
                 </div>
-                <div style="margin-top: 3rem;">
+                <div class="card" style="max-width: 900px; margin: 2rem auto 0; text-align: left;">
+                    <h4>Limites assumées (MVP)</h4>
+                    <p style="font-size: 1rem; margin: 0;">Maille arrondissement (pas IRIS) · Loyers = encadrement Paris · INSEE non souscrit (Filosofi) · Batch hebdomadaire, pas de flux DVF temps reel · Transports/vegetation partiellement estimes</p>
+                </div>
+                <div style="margin-top: 2rem;">
                     <span class="badge">Merci de votre attention</span>
                 </div>
             </div>
