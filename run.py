@@ -7,6 +7,11 @@ import sys
 import os
 from pathlib import Path
 
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+
 def check_data_exists():
     """Vérifie si les données Gold existent."""
     data_file = Path("data/gold/real_estate_data_gold_latest.json")
