@@ -1,168 +1,237 @@
-# Dashboard Immobilier Paris - Comparaison par Arrondissement
+# Urban Data Explorer
 
-Dashboard web interactif avec carte choroplethe pour comparer les prix immobiliers et indicateurs par arrondissement a Paris.
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Pipeline](https://github.com/totosoubi/UrbanDataExplorer1/actions/workflows/pipeline-scheduled.yml/badge.svg)](https://github.com/totosoubi/UrbanDataExplorer1/actions/workflows/pipeline-scheduled.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Fonctionnalites
+Plateforme de données urbaines consacrée au marché immobilier parisien. Elle collecte des données publiques, les transforme selon une architecture Medallion et les expose dans une API FastAPI ainsi qu'un dashboard cartographique interactif.
 
-- **Architecture Medallion** (Bronze -> Silver -> Gold)
-- **API REST FastAPI** avec 15+ endpoints
-- **Dashboard interactif** avec carte choroplethe MapLibre
-- **11 indicateurs** : Prix/m2, Evolution, Logements sociaux, Loyers, Accessibilite, Tension locative, Pollution, Delits, Revenus, Densite, Vegetation, Transports
-- **Export multi-formats** (CSV, Parquet, GeoJSON)
-- **Pipeline batch** automatise (GitHub Actions)
+Le projet permet de comparer les 20 arrondissements à partir d'indicateurs immobiliers, sociaux, environnementaux et de mobilité : prix au mètre carré, loyers, revenus, logements sociaux, pollution, végétation, délinquance et transports.
 
-## Installation
+## Fonctionnalités
+
+- pipeline batch Bronze → Silver → Gold avec contrôles de qualité ;
+- API REST FastAPI et documentation OpenAPI ;
+- dashboard MapLibre avec carte choroplèthe et comparateur d'arrondissements ;
+- export CSV, Parquet et GeoJSON ;
+- stockage PostgreSQL, MongoDB et MinIO ;
+- diffusion d'événements par Redis Streams et Kafka ;
+- quotas par IP, clé API optionnelle et rôles SQL ;
+- déploiement local, Docker Compose et GitHub Actions.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Sources[Sources publiques]
+        DVF[DVF / data.gouv.fr]
+        ODP[Open Data Paris]
+        INSEE[INSEE / Filosofi]
+        EXT[Airparif · RPLS · SSMSI · RATP]
+    end
+
+    subgraph Pipeline[Pipeline de données]
+        COLLECT[Collecte et géocodage]
+        BRONZE[(Bronze<br/>données brutes)]
+        SILVER[(Silver<br/>données normalisées)]
+        GOLD[(Gold<br/>indicateurs métier)]
+        EXPORT[Exports<br/>CSV · Parquet · GeoJSON]
+    end
+
+    subgraph Platform[Plateforme]
+        PG[(PostgreSQL)]
+        MONGO[(MongoDB)]
+        MINIO[(MinIO)]
+        EVENTS[Événements pipeline]
+        STREAM[Redis Streams · Kafka]
+    end
+
+    subgraph Delivery[Restitution]
+        API[API FastAPI]
+        NGINX[Nginx]
+        DASH[Dashboard MapLibre]
+        CLIENTS[Utilisateurs et clients API]
+    end
+
+    Sources --> COLLECT --> BRONZE --> SILVER --> GOLD
+    GOLD --> EXPORT
+    BRONZE --> MINIO
+    GOLD --> PG
+    BRONZE --> MONGO
+    COLLECT --> EVENTS --> STREAM
+    GOLD --> API
+    PG --> API
+    MONGO --> API
+    API --> NGINX --> DASH --> CLIENTS
+    API --> CLIENTS
+```
+
+Le pipeline batch produit le snapshot analytique. Les événements Redis/Kafka rendent son état observable, tandis que l'API choisit le backend disponible (`auto`, JSON, PostgreSQL ou MongoDB).
+
+## Structure du dépôt
+
+```text
+UrbanDataExplorer1/
+├── api.py                     # API REST et endpoints métier
+├── pipeline.py                # Orchestration Bronze → Silver → Gold
+├── run.py                     # Génération des données et démarrage API
+├── data_fetcher.py            # Collecte générique
+├── real_estate_fetcher.py     # Collecte des données immobilières
+├── data_processor.py          # Nettoyage et enrichissement
+├── public_data_integrations.py # Connecteurs vers les données publiques
+├── data/
+│   ├── bronze/                # Données sources
+│   ├── silver/                # Données nettoyées
+│   ├── gold/                  # Agrégats prêts à servir
+│   └── export/                # Exports générés
+├── dashboard/
+│   ├── index.html             # Interface cartographique
+│   └── static/                # JavaScript, CSS, images et GeoJSON
+├── ude_platform/
+│   ├── data_access.py         # Accès unifié JSON / SQL / MongoDB
+│   ├── enrichment.py          # Indicateurs métier
+│   ├── freshness.py           # Fraîcheur du snapshot
+│   ├── api_security.py        # Authentification et quotas
+│   ├── sync_databases.py      # Synchronisation des stockages
+│   └── streaming.py           # Événements Redis
+├── services/                  # Consumers Redis et Kafka
+├── database/                  # Schéma et migrations PostgreSQL
+├── tests/                     # Tests automatisés
+├── scripts/                   # Validation et exploitation
+├── docker-compose.yml         # Stack locale complète
+└── .github/workflows/         # Pipeline planifié et déploiement
+```
+
+## Démarrage rapide
+
+### Prérequis
+
+- Python 3.11 ou version compatible ;
+- `pip` ;
+- Docker et Docker Compose pour la stack complète.
+
+### Installation locale
 
 ```bash
+git clone https://github.com/totosoubi/UrbanDataExplorer1.git
+cd UrbanDataExplorer1
+
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
+```
+
+Générez les jeux Bronze, Silver et Gold, puis démarrez l'API :
+
+```bash
 python pipeline.py
 python run.py
 ```
 
-Accedez au dashboard : http://localhost:8001/dashboard/
+Services disponibles par défaut :
 
-## Structure du projet
+- dashboard : <http://localhost:8001/dashboard/> ;
+- API : <http://localhost:8001> ;
+- Swagger UI : <http://localhost:8001/docs>.
 
-```
-urban-data/
-|-- api.py                      # API REST FastAPI (15+ endpoints)
-|-- pipeline.py                 # Orchestration pipeline Bronze->Silver->Gold
-|-- run.py                      # Point d'entree principal
-|-- config.py                   # Configuration generale
-|-- config_real_estate.py       # Configuration sources de donnees
-|
-|-- data/                       # Donnees (architecture Medallion)
-|   |-- bronze/                 # Donnees brutes (API externes)
-|   |-- silver/                 # Donnees nettoyees et validees
-|   |-- gold/                   # Donnees enrichies (production)
-|   |   |-- parquet/            # Export partitionne par annee
-|   |-- export/                 # Tables exportees (CSV, Parquet, GeoJSON)
-|
-|-- dashboard/                  # Frontend web
-|   |-- index.html              # Page principale
-|   |-- config.js               # Configuration client
-|   |-- static/
-|       |-- css/style.css       # Styles
-|       |-- js/app.js           # Application JavaScript
-|       |-- js/paris_*.js       # Polygones arrondissements
-|       |-- images/             # Assets graphiques
-|
-|-- ude_platform/               # Modules plateforme data
-|   |-- config.py               # Variables d'environnement
-|   |-- data_access.py          # Acces unifie aux donnees (SQL/JSON)
-|   |-- enrichment.py           # Enrichissement metier
-|   |-- freshness.py            # Fraicheur des donnees
-|   |-- sync_databases.py       # Synchronisation PostgreSQL/MongoDB
-|   |-- streaming.py            # Redis/Kafka streaming
-|   |-- governance_catalog.py   # Catalogue de gouvernance
-|   |-- api_security.py         # Securite API (rate limiting)
-|
-|-- database/                   # Scripts base de donnees
-|   |-- init.sql                # Schema PostgreSQL
-|   |-- migrate_governance.sql  # Migration gouvernance
-|
-|-- scripts/                    # Scripts utilitaires
-|   |-- validate_rncp.py        # Validation competences RNCP
-|   |-- sync_platform.py        # Synchronisation plateforme
-|
-|-- services/                   # Services background
-|   |-- stream_consumer.py      # Consumer Redis
-|   |-- kafka_consumer.py       # Consumer Kafka
-|
-|-- tests/                      # Tests unitaires
-|   |-- test_enrichment.py
-|   |-- test_data_access.py
-|   |-- test_freshness.py
-|
-|-- .github/workflows/          # CI/CD
-|   |-- pipeline-scheduled.yml  # Pipeline batch hebdomadaire
-|
-|-- docker-compose.yml          # Stack complete (PostgreSQL, MongoDB, Redis, Kafka, MinIO)
-|-- Dockerfile                  # Image Docker API
-|-- requirements.txt            # Dependances Python
+### Stack Docker
+
+```bash
+docker compose up --build -d
+docker compose ps
 ```
 
-## API Endpoints
+L'entrée Nginx est disponible sur <http://localhost:8000>. Les identifiants présents dans `docker-compose.yml` sont exclusivement destinés au développement local.
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /arrondissements` | Liste complete avec donnees enrichies |
-| `GET /prix?annee=2024` | Prix par annee |
-| `GET /pollution` | Qualite de l'air par arrondissement |
-| `GET /comparaison?arr1=1&arr2=6` | Comparaison entre 2 arrondissements |
-| `GET /timeline?arr=6` | Evolution temporelle |
-| `GET /health` | Etat des services |
-| `GET /docs` | Documentation Swagger |
+## API principale
 
-## Indicateurs
+| Méthode | Endpoint | Description |
+|---|---|---|
+| `GET` | `/arrondissements` | Liste enrichie des arrondissements |
+| `GET` | `/prix?annee=2024` | Prix immobiliers par année |
+| `GET` | `/pollution` | Indicateurs de qualité de l'air |
+| `GET` | `/comparaison?arr1=1&arr2=6` | Comparaison de deux arrondissements |
+| `GET` | `/timeline?arr=6` | Évolution temporelle d'un arrondissement |
+| `GET` | `/platform/freshness` | Fraîcheur du snapshot et latence |
+| `GET` | `/platform/governance` | Authentification, quotas et gouvernance |
+| `GET` | `/health` | État de l'API et des services |
 
-### Indicateurs principaux
-- **Prix/m2** : Prix median au metre carre (DVF)
-- **Logements sociaux** : Pourcentage de logements sociaux (RPLS)
-- **Loyers** : Loyers de reference (encadrement Paris)
+La spécification complète est générée automatiquement dans `/docs` et `/openapi.json`.
 
-### Indicateurs avec formules
-- **Accessibilite** : `(prix_m2 x 50) / (revenu_median / 12)` - Mois de revenu pour 50m2
-- **Tension locative** : `(loyer_m2 x 50 x 12) / revenu_median x 100` - Part du revenu
-- **Densite** : `population / superficie_km2`
-- **Qualite de l'air** : `indice_Paris x f(densite, transports)` - Indice ATMO local
+## Modèle de données
 
-### Indicateurs personnalises
-- **Pollution** : Indice Citeair (OpenData Paris / Airparif)
-- **Delits** : Delinquance enregistree (data.gouv / SSMSI)
-- **Revenus** : Revenu median des menages (Filosofi)
-- **Vegetation** : Nombre d'arbres (OpenData Paris)
-- **Transports** : Stations metro/RER (RATP)
+| Couche | Rôle | Exemple |
+|---|---|---|
+| Bronze | Conservation des réponses sources | transactions et points géolocalisés bruts |
+| Silver | Normalisation, dédoublonnage et validation | types harmonisés et coordonnées contrôlées |
+| Gold | Agrégation et calcul des indicateurs | prix médian, accessibilité et tension locative |
 
-## Sources de donnees
+Principaux calculs :
 
-| Source | Donnees |
-|--------|---------|
-| DVF (data.gouv) | Transactions immobilieres |
-| OpenData Paris | Loyers, vegetation, transports, qualite de l'air |
-| SSMSI (data.gouv) | Delinquance communale |
-| Filosofi (data.gouv) | Revenus des menages |
+- accessibilité : coût estimé d'un logement de 50 m² rapporté au revenu mensuel ;
+- tension locative : loyer annuel estimé rapporté au revenu médian ;
+- densité : population rapportée à la superficie ;
+- qualité de l'air : indice parisien contextualisé par la densité et les transports.
+
+## Sources de données
+
+| Source | Données utilisées |
+|---|---|
+| [DVF](https://www.data.gouv.fr/fr/datasets/demandes-de-valeurs-foncieres/) | Transactions immobilières |
+| [Open Data Paris](https://opendata.paris.fr/) | Loyers, arbres, transports et qualité de l'air |
+| [INSEE](https://www.insee.fr/) | Revenus et statistiques territoriales |
 | RPLS | Logements sociaux |
+| SSMSI | Délinquance enregistrée |
 
-## Pipeline batch
-
-Le pipeline s'execute automatiquement chaque lundi a 6h (GitHub Actions) :
+## Tests
 
 ```bash
-# Execution manuelle
-python pipeline.py
+python -m pytest -q
 ```
 
-Etapes :
-1. **Bronze** : Collecte des donnees brutes (APIs externes)
-2. **Silver** : Nettoyage et validation
-3. **Gold** : Enrichissement et calcul des indicateurs
-4. **Export** : Generation CSV, Parquet, GeoJSON
+Les tests couvrent notamment l'API, les enrichissements, la fraîcheur des données, l'accès aux stockages, Kafka et le chargement SQL. Les tests nécessitant une infrastructure externe sont ignorés lorsque celle-ci n'est pas disponible.
 
-## Deploiement
+## Configuration et sécurité
 
-### Local
-```bash
-python run.py
-```
+Copiez `.env.example` vers `.env`, puis renseignez uniquement les services utilisés. Le fichier `.env` est ignoré par Git.
 
-### Docker
-```bash
-docker compose up -d
-```
+Variables principales :
 
-### Production
-Voir `render.yaml` et `Procfile` pour le deploiement cloud.
+| Variable | Usage |
+|---|---|
+| `INSEE_API_KEY` | Accès direct à l'API INSEE |
+| `INSEE_CONSUMER_KEY` / `INSEE_CONSUMER_SECRET` | Authentification OAuth INSEE |
+| `UDE_API_KEY` | Protection optionnelle des endpoints |
+| `DATA_BACKEND` | Sélection de `auto`, `json`, `postgres` ou `mongo` |
+| `POSTGRES_URL` / `MONGO_URL` | Connexion aux bases |
+| `REDIS_URL` / `KAFKA_BOOTSTRAP_SERVERS` | Streaming et événements |
 
-## Documentation projet
+Ne versionnez jamais de jeton, mot de passe réel ou fichier `.env`. Remplacez les identifiants de développement avant tout déploiement public.
 
-- [SYNTHESE_ECARTS.md](SYNTHESE_ECARTS.md) - Synthese des ecarts et checklist
-- [VALIDATION_RNCP.md](VALIDATION_RNCP.md) - Validation des 8 competences RNCP
-- [BDD_RELATIONNELLE.md](BDD_RELATIONNELLE.md) - Base de donnees SQL
-- [BDD_NON_RELATIONNELLE.md](BDD_NON_RELATIONNELLE.md) - Base de donnees NoSQL
-- [DATA_LAKE.md](DATA_LAKE.md) - Architecture Data Lake
-- [RGPD.md](RGPD.md) - Conformite RGPD
+## Documentation
+
+- [Architecture du Data Lake](DATA_LAKE.md)
+- [Base de données relationnelle](BDD_RELATIONNELLE.md)
+- [Base de données non relationnelle](BDD_NON_RELATIONNELLE.md)
+- [Déploiement](DEPLOIEMENT.md)
+- [Conformité RGPD](RGPD.md)
+- [Validation RNCP](VALIDATION_RNCP.md)
+- [Support de présentation](PRESENTATION.md)
+
+## Équipe
+
+Projet réalisé en groupe par :
+
+- [Thomas Soubirou-Pouey — `totosoubi`](https://github.com/totosoubi)
+- [Nathan — `nathan7836`](https://github.com/nathan7836)
+- [Estelle — `Pandyyyyyyy`](https://github.com/Pandyyyyyyy)
+- [Killian — `KillianKS`](https://github.com/KillianKS)
+
+Les auteurs Git des commits restent la source de vérité pour l'attribution précise des modifications.
 
 ## Licence
 
-MIT License
+Ce projet est distribué sous licence [MIT](LICENSE).
