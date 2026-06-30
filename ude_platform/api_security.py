@@ -218,6 +218,9 @@ def governance_quotas_doc() -> Dict[str, object]:
             "note": "Desactivee si UDE_API_KEY non defini (developpement)",
         },
         "rate_limit": {
+            # Alias conservés pour les clients historiques de l'API.
+            "limit_per_ip": API_RATE_LIMIT,
+            "window_sec": API_RATE_WINDOW_SEC,
             "minute": {
                 "limit_per_ip": API_RATE_LIMIT,
                 "window_sec": API_RATE_WINDOW_SEC,
