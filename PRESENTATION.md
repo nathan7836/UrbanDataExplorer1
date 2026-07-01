@@ -11,7 +11,7 @@ Le marché immobilier parisien est complexe et les données sont dispersées. Il
 
 ## 💡 Solution
 
-**Dashboard interactif avec carte choroplèthe** permettant de visualiser et comparer les données immobilières par arrondissement.
+**Dashboard interactif avec carte choroplèthe** permettant de visualiser les 20 arrondissements ou les 992 IRIS officiels. À l'IRIS, prix DVF, population, revenus, logements et végétation sont calculés depuis leurs sources fines ; les indicateurs sans source IRIS ne sont pas affichés.
 
 ## 🏗️ Architecture Technique
 
@@ -209,4 +209,3 @@ Ce projet démontre une maîtrise complète de :
 
 **Présentation créée le** : 2024-11-21  
 **Version** : 1.0.0
-
