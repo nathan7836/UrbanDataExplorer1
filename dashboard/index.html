@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Urban Data Explorer — Paris</title>
-    <link rel="stylesheet" href="static/css/style.css?v=20260624d">
+    <link rel="stylesheet" href="static/css/style.css?v=20260701b">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script>maplibregl.accessToken = '';</script>
@@ -21,11 +21,18 @@
                 <div class="brand-mark" aria-hidden="true">UDE</div>
                 <div class="header-titles">
                     <h1>Urban Data Explorer</h1>
-                    <p class="subtitle">Marché du logement · Paris · 20 arrondissements</p>
+                    <p class="subtitle">Marché du logement · Paris · 20 arrondissements · 992 IRIS</p>
                     <p id="data-freshness" class="data-freshness" aria-live="polite"></p>
                 </div>
             </div>
             <div class="header-controls">
+                <div class="control-group">
+                    <label for="mesh-selector">Maille</label>
+                    <select id="mesh-selector" class="select-modern" aria-label="Sélectionner la maille géographique">
+                        <option value="arrondissements">Arrondissements</option>
+                        <option value="iris">IRIS</option>
+                    </select>
+                </div>
                 <div class="control-group">
                     <label for="year-selector">Année</label>
                     <select id="year-selector" class="select-modern" aria-label="Sélectionner l'année d'analyse">
@@ -154,17 +161,18 @@
                 <section class="sidebar-section sidebar-section--detail">
                     <h2 class="section-label">Sélection</h2>
                     <div id="selected-info" class="selected-info">
-                        <p class="info-placeholder">Survolez ou cliquez un arrondissement sur la carte</p>
+                        <p class="info-placeholder">Survolez ou cliquez une zone sur la carte</p>
                     </div>
                 </section>
 
                 <details class="sidebar-disclaimer" id="limites-mvp">
                     <summary>Limites du périmètre</summary>
                     <ul class="limites-list">
-                        <li>Maille : 20 arrondissements (pas IRIS).</li>
+                        <li>Contours : 20 arrondissements ou 992 IRIS officiels IGN-INSEE.</li>
+                        <li>Indicateurs IRIS natifs : DVF, population, revenus, logements et arbres ; les zones sans source fine restent grisées.</li>
                         <li>Loyers : encadrement Paris, pas le marché locatif complet.</li>
                         <li>Logements sociaux : taux 2024 + évolution calibrée open data.</li>
-                        <li>INSEE non utilisé — sources data.gouv.</li>
+                        <li>Population, logement et Filosofi IRIS : millésime INSEE 2021.</li>
                         <li>Végétation et transports partiellement simulés.</li>
                     </ul>
                 </details>
@@ -172,12 +180,13 @@
 
             <div class="map-container-wrapper">
                 <div id="map-guide" class="map-guide" role="note">
-                    <p><strong>Lecture :</strong> la carte colore l'indicateur actif. Cliquez pour le détail. Activez les points DVF ou la timeline pour explorer les ventes et l'évolution annuelle.</p>
+                    <p><strong>Lecture :</strong> une valeur faible est claire, une valeur élevée est foncée ou vive. Cliquez pour le détail. Activez les points DVF ou la timeline pour explorer les ventes et l'évolution annuelle.</p>
                     <button type="button" id="map-guide-close" class="map-guide-close" aria-label="Masquer l'aide">×</button>
                 </div>
-                <div id="map" class="map-container" role="application" aria-label="Carte des arrondissements de Paris"></div>
+                <div id="map" class="map-container" role="application" aria-label="Carte des arrondissements et IRIS de Paris"></div>
                 <div class="map-legend">
                     <h4>Prix/m² (€)</h4>
+                    <p class="legend-scale-note">Faible = clair · Élevé = foncé</p>
                     <div class="legend-gradient"></div>
                     <div class="legend-labels">
                         <span>8 000</span>
@@ -241,6 +250,6 @@
     <script src="static/js/paris_official_polygons.js"></script>
     <script src="static/js/transports_data.js"></script>
     <script src="static/js/sante_data.js"></script>
-    <script src="static/js/app.js?v=20260626b"></script>
+    <script src="static/js/app.js?v=20260701c"></script>
 </body>
 </html>

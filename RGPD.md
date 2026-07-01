@@ -3,7 +3,7 @@
 ## Périmètre des données
 
 - **Sources** : open data publiques (data.gouv, OpenData Paris, INSEE/Filosofi agrégé).
-- **Pas de données personnelles directes** en Gold : agrégats par **arrondissement** (pas de nom d’individu).
+- **Pas de données personnelles directes** en Gold : agrégats par arrondissement ou IRIS (pas de nom ni d'adresse). Les statistiques DVF IRIS ne sont publiées qu'à partir de trois ventes par année.
 - **Géocodage** : adresses DVF utilisées pour calculer des centroïdes ; pas stockage d’adresses complètes en couche Gold.
 
 ## Base légale
@@ -15,7 +15,7 @@
 
 | Mesure | Implémentation |
 |--------|----------------|
-| Minimisation | Agrégation arrondissement |
+| Minimisation | Agrégation arrondissement/IRIS ; seuil minimal de trois ventes DVF |
 | Secrets | `.env` non versionné (`.gitignore`) |
 | Accès | PostgreSQL : rôle `ude_reader` lecture seule ; `ude_admin` pipeline |
 | Stockage | Lake local + MinIO (chiffrement au repos = responsabilité hébergeur) |

@@ -640,6 +640,21 @@ body::before {
     margin: 0;
 }
 
+.iris-selection-note {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin: -0.35rem 0 0.85rem;
+    padding: 0.65rem 0.75rem;
+    color: var(--text-secondary);
+    background: var(--accent-soft);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 8px;
+    font-size: 0.72rem;
+}
+
+.iris-selection-note strong { color: var(--accent); }
+
 .btn-reset {
     background: var(--surface-hover);
     border: 1px solid var(--border);
@@ -818,9 +833,16 @@ body::before {
     margin-bottom: 0.35rem;
 }
 
+.legend-scale-note {
+    margin: 0 0 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.62rem;
+    white-space: nowrap;
+}
+
 .legend-gradient {
     height: 6px;
-    background: linear-gradient(to right, #0c2d48, #0e5a7a, #0e94b8, #38d9f5, #a8ecff);
+    background: linear-gradient(to right, #a8ecff, #38d9f5, #0e94b8, #0e5a7a, #0c2d48);
     border-radius: 3px;
     margin-bottom: 0.3rem;
 }
@@ -972,6 +994,21 @@ body::before {
 .map-container-wrapper .tooltip-title sup {
     font-size: 0.65em;
     color: var(--text-muted);
+}
+
+.tooltip-code {
+    display: inline-block;
+    margin-left: 0.25rem;
+    color: var(--text-muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.65rem;
+}
+
+.tooltip-mesh {
+    margin-bottom: 0.3rem;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    line-height: 1.35;
 }
 
 .map-container-wrapper .tooltip-content {

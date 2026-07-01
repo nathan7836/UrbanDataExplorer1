@@ -69,6 +69,8 @@ app.add_middleware(
 
 DATA_DIR = Path("data/gold")
 LATEST_DATA_FILE = DATA_DIR / "real_estate_data_gold_latest.json"
+IRIS_GEOJSON_FILE = Path("dashboard/static/data/paris_iris.geojson")
+IRIS_METRICS_FILE = Path("dashboard/static/data/paris_iris_metrics.json")
 
 
 _data_cache: Optional[Dict] = None
@@ -107,6 +109,50 @@ def load_data() -> Dict:
             _data_cache["data_backend"] = "json_fallback"
             return _data_cache
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def load_iris_geojson() -> Dict:
+    """Charge le référentiel IRIS Paris embarqué avec l'application."""
+    if not IRIS_GEOJSON_FILE.exists():
+        raise HTTPException(status_code=503, detail="Référentiel IRIS indisponible")
+    with IRIS_GEOJSON_FILE.open(encoding="utf-8") as stream:
+        return json.load(stream)
+
+
+def load_iris_metrics() -> Dict:
+    """Charge les indicateurs calculés directement à la maille IRIS."""
+    if not IRIS_METRICS_FILE.exists():
+        raise HTTPException(status_code=503, detail="Indicateurs IRIS indisponibles")
+    with IRIS_METRICS_FILE.open(encoding="utf-8") as stream:
+        return json.load(stream)
+
+
+def _iris_summary(feature: Dict, native: Optional[Dict], annee: Optional[int] = None) -> Dict:
+    props = feature.get("properties") or {}
+    native = native or {}
+    year = str(annee or 2024)
+    immobilier = (native.get("immobilier") or {}).get(year) or {}
+    revenus = native.get("revenus") or {}
+    population = native.get("population") or {}
+    logements = native.get("logements") or {}
+    vegetation = native.get("vegetation") or {}
+    accessibilite = (native.get("accessibilite") or {}).get(year) or {}
+    return {
+        **props,
+        "indicateurs_niveau": "iris",
+        "annee_prix": int(year),
+        "prix_m2": immobilier.get("prix_m2_median"),
+        "nombre_transactions": immobilier.get("nombre_transactions"),
+        "surface_mediane_m2": immobilier.get("surface_mediane_m2"),
+        "population": population.get("population"),
+        "densite_km2": population.get("densite_km2"),
+        "niveau_vie_median": revenus.get("niveau_vie_median"),
+        "taux_pauvrete": revenus.get("taux_pauvrete"),
+        "logements_sociaux_pourcentage": logements.get("logements_sociaux_pourcentage"),
+        "nombre_arbres": vegetation.get("nombre_arbres"),
+        "mois_revenu_pour_50m2_achat": accessibilite.get("mois_revenu_pour_50m2_achat"),
+        "donnees_natives": native,
+    }
 
 
 def _redis_cache_listener() -> None:
@@ -501,6 +547,9 @@ async def root():
         "endpoints": {
             "/arrondissements": "Liste tous les arrondissements",
             "/arrondissements/{num}": "Détails d'un arrondissement",
+            "/iris": "Liste des 992 IRIS et indicateurs calculés à cette maille",
+            "/iris/{code_iris}": "Détail des indicateurs natifs d'un IRIS",
+            "/iris/geojson": "Contours IRIS officiels IGN-INSEE",
             "/prix-m2": "Prix/m² avec statistiques (min, max, moyen, médian)",
             "/logements-sociaux": "Part de logements sociaux",
             "/typologie": "Typologie des logements",
@@ -542,6 +591,88 @@ async def get_sources():
         "sources_updated_at": data.get("sources_updated_at"),
         "timestamp": data.get("timestamp"),
         "indicateurs_exemple": sample_sources,
+    }
+
+
+@app.get("/iris")
+async def get_iris(arrondissement: Optional[int] = None, annee: Optional[int] = None):
+    """Liste le référentiel IRIS et ses indicateurs calculés à cette maille."""
+    if arrondissement is not None and not 1 <= arrondissement <= 20:
+        raise HTTPException(status_code=400, detail="arrondissement entre 1 et 20")
+    iris = load_iris_geojson()
+    metrics_payload = load_iris_metrics()
+    metrics = metrics_payload.get("iris", {})
+    rows = []
+    for feature in iris.get("features", []):
+        numéro = feature.get("properties", {}).get("arrondissement")
+        if arrondissement is not None and numéro != arrondissement:
+            continue
+        code = feature.get("properties", {}).get("code_iris")
+        rows.append(_iris_summary(feature, metrics.get(code), annee))
+    return {
+        "maille": "IRIS",
+        "nombre": len(rows),
+        "annee": annee,
+        "source": metrics_payload.get("sources", {}),
+        "avertissement": (
+            "Les indicateurs retournés sont calculés à l'IRIS. Une valeur null "
+            "signifie que la source est absente ou que le seuil minimal de trois "
+            "transactions DVF n'est pas atteint."
+        ),
+        "iris": rows,
+    }
+
+
+@app.get("/iris/geojson")
+async def get_iris_geojson(arrondissement: Optional[int] = None):
+    """Retourne les contours IRIS officiels, filtrables par arrondissement."""
+    if arrondissement is not None and not 1 <= arrondissement <= 20:
+        raise HTTPException(status_code=400, detail="arrondissement entre 1 et 20")
+    iris = load_iris_geojson()
+    features = iris.get("features", [])
+    if arrondissement is not None:
+        features = [
+            feature
+            for feature in features
+            if feature.get("properties", {}).get("arrondissement") == arrondissement
+        ]
+    return {
+        "type": "FeatureCollection",
+        "metadata": iris.get("metadata", {}),
+        "features": features,
+    }
+
+
+@app.get("/iris/{code_iris}")
+async def get_iris_detail(code_iris: str, annee: Optional[int] = None):
+    """Retourne les indicateurs natifs d'un IRIS et le parent pour contexte."""
+    iris = load_iris_geojson()
+    feature = next(
+        (
+            item
+            for item in iris.get("features", [])
+            if item.get("properties", {}).get("code_iris") == code_iris
+        ),
+        None,
+    )
+    if feature is None:
+        raise HTTPException(status_code=404, detail="IRIS non trouvé")
+    numéro = feature["properties"]["arrondissement"]
+    metrics_payload = load_iris_metrics()
+    native = metrics_payload.get("iris", {}).get(code_iris)
+    data = load_data()
+    parent = next(
+        (
+            item
+            for item in enrich_all(data.get("arrondissements", []), annee)
+            if item["arrondissement"] == numéro
+        ),
+        None,
+    )
+    return {
+        **_iris_summary(feature, native, annee),
+        "donnees_arrondissement_parent": parent,
+        "source": metrics_payload.get("sources", {}),
     }
 
 
@@ -1122,4 +1253,3 @@ if __name__ == "__main__":
     port = API_PORT
     logger.info("Écoute sur http://127.0.0.1:%s — docs: /docs", port)
     uvicorn.run(app, host=host, port=port)
-

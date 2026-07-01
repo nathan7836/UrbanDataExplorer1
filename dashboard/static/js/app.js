@@ -159,12 +159,12 @@ function updateLoadingText(text) {
     const el = document.querySelector('.loading-text');
     if (el) el.textContent = text;
 }
-/** Échelle cyan commune (prix, loyers, logements, etc.) */
-const MAP_BASE = ['#0c2d48', '#0e5a7a', '#0e94b8', '#38d9f5', '#a8ecff'];
-const AIR_GOOD_TO_BAD = ['#34d399', '#a3e635', '#fbbf24', '#f97316', '#ef4444'];
-const VEG_NONE_TO_DENSE = ['#64748b', '#94a3b8', '#86efac', '#22c55e', '#14532d'];
-// Sante: vert = bon acces, rouge = mauvais
-const SANTE_COLORS = ['#ef4444', '#f97316', '#fbbf24', '#a3e635', '#34d399'];
+/** Palettes séquentielles : faible = clair, élevé = foncé ou vif. */
+const MAP_BASE = ['#a8ecff', '#38d9f5', '#0e94b8', '#0e5a7a', '#0c2d48'];
+const AIR_LOW_TO_HIGH = ['#dcfce7', '#86efac', '#fde68a', '#fb923c', '#b91c1c'];
+const VEG_LOW_TO_HIGH = ['#f1f5f9', '#bbf7d0', '#86efac', '#22c55e', '#14532d'];
+const SCORE_LOW_TO_HIGH = ['#fee2e2', '#fdba74', '#fde68a', '#4ade80', '#166534'];
+const WAIT_LOW_TO_HIGH = ['#dcfce7', '#86efac', '#fde68a', '#fb923c', '#b91c1c'];
 
 function seqLtExpr(t1, t2, t3, t4) {
     return [
@@ -219,20 +219,21 @@ function ensureArrondissementLabels() {
 
 function applyMapBorders() {
     if (!map?.getLayer('arrondissements-outline-thick')) return;
+    const irisView = selectedMesh === 'iris';
     map.setPaintProperty('arrondissements-outline-thick', 'line-color', MAP_OUTLINE.light);
-    map.setPaintProperty('arrondissements-outline-thick', 'line-opacity', 0.95);
+    map.setPaintProperty('arrondissements-outline-thick', 'line-opacity', irisView ? 0.55 : 0.95);
     map.setPaintProperty('arrondissements-outline-thick', 'line-width', [
-        'interpolate', ['linear'], ['zoom'], 10, 2.5, 12, 3, 14, 3.5, 16, 4,
+        'interpolate', ['linear'], ['zoom'], 10, irisView ? 0.35 : 2.5, 12, irisView ? 0.55 : 3, 14, irisView ? 0.8 : 3.5, 16, irisView ? 1.2 : 4,
     ]);
     map.setPaintProperty('arrondissements-outline', 'line-color', MAP_OUTLINE.dark);
-    map.setPaintProperty('arrondissements-outline', 'line-opacity', 0.9);
+    map.setPaintProperty('arrondissements-outline', 'line-opacity', irisView ? 0.7 : 0.9);
     map.setPaintProperty('arrondissements-outline', 'line-width', [
-        'interpolate', ['linear'], ['zoom'], 10, 1, 12, 1.25, 14, 1.5, 16, 1.75,
+        'interpolate', ['linear'], ['zoom'], 10, irisView ? 0.2 : 1, 12, irisView ? 0.35 : 1.25, 14, irisView ? 0.55 : 1.5, 16, irisView ? 0.8 : 1.75,
     ]);
     map.setPaintProperty('arrondissements-outline', 'line-dasharray', ['literal', [1, 0]]);
     if (map.getLayer('arrondissements-fill')) {
         map.setPaintProperty('arrondissements-fill', 'fill-outline-color', MAP_OUTLINE.light);
-        map.setPaintProperty('arrondissements-fill', 'fill-opacity', 0.82);
+        map.setPaintProperty('arrondissements-fill', 'fill-opacity', irisView ? 0.76 : 0.82);
     }
 }
 
@@ -272,7 +273,9 @@ let map = null;
 let charts = {};
 let selectedYear = 2024;
 let selectedIndicator = 'prix';
+let selectedMesh = 'arrondissements';
 let selectedArr = null;
+let selectedIris = null;
 let timelinePlaying = false;
 let timelineInterval = null;
 let geoPointsVisible = false;
@@ -454,8 +457,9 @@ function initializeMap() {
         
         if (features.length > 0) {
             map.getCanvas().style.cursor = 'pointer';
-            const arrNum = features[0].properties.arrondissement;
-            showTooltip(e, arrNum);
+            const properties = features[0].properties;
+            const arrNum = Number(properties.arrondissement);
+            showTooltip(e, arrNum, properties);
         } else {
             map.getCanvas().style.cursor = '';
             hideTooltip();
@@ -470,13 +474,16 @@ function initializeMap() {
         });
         
         if (features.length > 0) {
-            const arrNum = features[0].properties.arrondissement;
-            selectArrondissement(arrNum);
+            const properties = features[0].properties;
+            const arrNum = Number(properties.arrondissement);
+            selectArrondissement(arrNum, properties);
         }
     });
 }
 
 let arrondissementsPolygons = null;
+let irisPolygons = null;
+let irisMetrics = null;
 
 // POLYGONES RÉELS des arrondissements de Paris avec contours PRÉCIS et IRRÉGULIERS
 // Formes réalistes basées sur les vraies frontières administratives (pas des carrés!)
@@ -805,6 +812,33 @@ async function loadPolygons() {
     return arrondissementsPolygons;
 }
 
+async function loadIrisPolygons() {
+    if (irisPolygons) return irisPolygons;
+    const response = await fetch('static/data/paris_iris.geojson');
+    if (!response.ok) {
+        throw new Error(`Référentiel IRIS indisponible (${response.status})`);
+    }
+    irisPolygons = await response.json();
+    if (irisPolygons.type !== 'FeatureCollection' || irisPolygons.features.length !== 992) {
+        throw new Error('Référentiel IRIS invalide : 992 entités attendues');
+    }
+    console.log('992 contours IRIS officiels IGN-INSEE chargés');
+    return irisPolygons;
+}
+
+async function loadIrisMetrics() {
+    if (irisMetrics) return irisMetrics;
+    const response = await fetch('static/data/paris_iris_metrics.json');
+    if (!response.ok) {
+        throw new Error(`Indicateurs IRIS indisponibles (${response.status})`);
+    }
+    irisMetrics = await response.json();
+    if (irisMetrics.maille !== 'IRIS' || Object.keys(irisMetrics.iris || {}).length !== 992) {
+        throw new Error('Snapshot des indicateurs IRIS invalide');
+    }
+    return irisMetrics;
+}
+
 function createBasicPolygons() {
     // Créer des polygones basiques pour chaque arrondissement
     const features = [];
@@ -884,21 +918,21 @@ async function updateMap() {
         console.warn('Données non chargées, affichage des polygones basiques');
     }
 
-    // Charger les polygones si pas déjà fait
-    if (!arrondissementsPolygons) {
-        await loadPolygons();
+    let activePolygons;
+    if (selectedMesh === 'iris') {
+        [activePolygons] = await Promise.all([loadIrisPolygons(), loadIrisMetrics()]);
+    } else {
+        activePolygons = arrondissementsPolygons || await loadPolygons();
     }
 
-    if (!arrondissementsPolygons) {
+    if (!activePolygons) {
         console.error('Impossible de charger les polygones');
         return;
     }
     
-    console.log('Polygones chargés:', arrondissementsPolygons.features.length);
-    console.log('Type de géométrie:', arrondissementsPolygons.features[0]?.geometry?.type);
-    console.log('Points du premier arrondissement:', arrondissementsPolygons.features[0]?.geometry?.coordinates[0]?.length);
+    console.log(`${selectedMesh} chargés:`, activePolygons.features.length);
 
-    const features = arrondissementsPolygons.features.map(polygon => {
+    const features = activePolygons.features.map(polygon => {
         let arrNum = polygon.properties.arrondissement;
         if (!arrNum && polygon.properties.c_ar !== undefined) {
             arrNum = parseInt(polygon.properties.c_ar);
@@ -916,6 +950,9 @@ async function updateMap() {
         }
         
         const arrData = allData ? allData.find(a => a.arrondissement === arrNum) : null;
+        const nativeIris = selectedMesh === 'iris'
+            ? irisMetrics?.iris?.[polygon.properties.code_iris]
+            : null;
         
         let defaultValue = 9000;
         if (selectedIndicator === 'logements') defaultValue = 15;
@@ -928,7 +965,12 @@ async function updateMap() {
         if (selectedIndicator === 'tension') defaultValue = 45;
         
         let value = defaultValue;
-        if (arrData) {
+        let hasData = true;
+        if (selectedMesh === 'iris') {
+            const calculatedValue = getIrisIndicatorValue(nativeIris, selectedIndicator, selectedYear);
+            hasData = calculatedValue !== null && calculatedValue !== undefined && !Number.isNaN(calculatedValue);
+            value = hasData ? calculatedValue : 0;
+        } else if (arrData) {
             const calculatedValue = getIndicatorValue(arrData, selectedIndicator, selectedYear);
             value = calculatedValue !== null && calculatedValue !== undefined && calculatedValue >= 0 ? calculatedValue : defaultValue;
         }
@@ -938,16 +980,19 @@ async function updateMap() {
         return {
             ...polygon,
             properties: {
+                ...polygon.properties,
                 arrondissement: arrNum,
                 nom: polygon.properties.nom || arrondissementLabel(arrNum),
                 value: value,
                 color: color,
                 indicator: selectedIndicator,
+                has_data: hasData,
+                data_level: selectedMesh === 'iris' ? 'iris' : 'arrondissement',
             }
         };
     }).filter(f => f !== null);
 
-    console.log(`Features créées: ${features.length} (devrait être 20)`);
+    console.log(`Features cartographiques créées: ${features.length}`);
 
     const geojson = {
         type: 'FeatureCollection',
@@ -970,10 +1015,10 @@ async function updateMap() {
         applyMapBorders();
         
         // Afficher les arbres si l'indicateur végétation est sélectionné
-        if (selectedIndicator === 'vegetation') {
+        if (selectedMesh === 'arrondissements' && selectedIndicator === 'vegetation') {
             updateTreeMarkers();
             removeTransportMarkers();
-        } else if (selectedIndicator === 'transports') {
+        } else if (selectedMesh === 'arrondissements' && selectedIndicator === 'transports') {
             updateTransportMarkers();
             removeTreeMarkers();
         } else {
@@ -1021,10 +1066,15 @@ async function updateMap() {
             }
         }, 'arrondissements-outline-thick');
 
-        ensureArrondissementLabels();
+        if (selectedMesh === 'arrondissements') ensureArrondissementLabels();
     }
 
-    ensureArrondissementLabels();
+    if (selectedMesh === 'arrondissements') {
+        ensureArrondissementLabels();
+    } else {
+        removeArrondissementLabelMarkers();
+    }
+    applyMapBorders();
 
     // Garder la carte droite (pas d'animation si déjà droite)
     if (map.getPitch() !== 0) {
@@ -1036,16 +1086,17 @@ async function updateMap() {
     }
     
     // Afficher les arbres si l'indicateur végétation est sélectionné
-    if (selectedIndicator === 'vegetation') {
+    if (selectedMesh === 'arrondissements' && selectedIndicator === 'vegetation') {
         updateTreeMarkers();
         removeTransportMarkers();
-    } else if (selectedIndicator === 'transports') {
+    } else if (selectedMesh === 'arrondissements' && selectedIndicator === 'transports') {
         updateTransportMarkers();
         removeTreeMarkers();
     } else {
         removeTreeMarkers();
         removeTransportMarkers();
     }
+    updateUniformDataNotice();
 }
 
 let treeMarkers = [];
@@ -1351,7 +1402,7 @@ const INDICATOR_FORMULAS = {
         title: 'Accessibilité à l\'achat',
         formula: '(prix_m² × 50) / (revenu_médian / 12)',
         unit: 'mois de revenu',
-        note: 'Mois de revenu médian nécessaires pour financer 50 m² à l\'achat.',
+        note: 'Mois de revenu médian nécessaires pour financer 50 m² à l\'achat. Plus la valeur est basse, plus l\'effort est faible.',
     },
     densite: {
         title: 'Densité de population',
@@ -1396,12 +1447,12 @@ function selectIndicator(indicator) {
     updateMapLegend();
     updateMap();
     updateUniformDataNotice();
-    if (selectedIndicator === 'vegetation') {
+    if (selectedMesh === 'arrondissements' && selectedIndicator === 'vegetation') {
         setTimeout(() => updateTreeMarkers(), 200);
     } else {
         removeTreeMarkers();
     }
-    if (selectedIndicator === 'transports') {
+    if (selectedMesh === 'arrondissements' && selectedIndicator === 'transports') {
         updateTransportMarkers();
     } else {
         removeTransportMarkers();
@@ -1412,7 +1463,7 @@ function getOutlineDashExpression(indicator) {
     return ['literal', [1, 0]];
 }
 
-function getColorExpressionForIndicator(indicator) {
+function getBaseColorExpressionForIndicator(indicator) {
     switch (indicator) {
         case 'prix':
             return seqLtExpr(8000, 10000, 12000, 15000);
@@ -1435,84 +1486,91 @@ function getColorExpressionForIndicator(indicator) {
         case 'pollution':
             return [
                 'case',
-                ['<=', ['get', 'value'], 2.9], AIR_GOOD_TO_BAD[0],
-                ['<=', ['get', 'value'], 3.1], AIR_GOOD_TO_BAD[1],
-                ['<=', ['get', 'value'], 3.2], AIR_GOOD_TO_BAD[2],
-                ['<=', ['get', 'value'], 3.3], AIR_GOOD_TO_BAD[3],
-                AIR_GOOD_TO_BAD[4],
+                ['<=', ['get', 'value'], 2.9], AIR_LOW_TO_HIGH[0],
+                ['<=', ['get', 'value'], 3.1], AIR_LOW_TO_HIGH[1],
+                ['<=', ['get', 'value'], 3.2], AIR_LOW_TO_HIGH[2],
+                ['<=', ['get', 'value'], 3.3], AIR_LOW_TO_HIGH[3],
+                AIR_LOW_TO_HIGH[4],
             ];
         case 'vegetation':
             return [
                 'case',
-                ['<', ['get', 'value'], 200], VEG_NONE_TO_DENSE[0],
-                ['<', ['get', 'value'], 500], VEG_NONE_TO_DENSE[1],
-                ['<', ['get', 'value'], 1000], VEG_NONE_TO_DENSE[2],
-                ['<', ['get', 'value'], 2000], VEG_NONE_TO_DENSE[3],
-                VEG_NONE_TO_DENSE[4],
+                ['<', ['get', 'value'], 200], VEG_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 500], VEG_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 1000], VEG_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 2000], VEG_LOW_TO_HIGH[3],
+                VEG_LOW_TO_HIGH[4],
             ];
         case 'score_global':
-            // Score 0-100, vert = mieux
+            // Score faible clair, score élevé foncé.
             return [
                 'case',
-                ['<', ['get', 'value'], 30], AIR_GOOD_TO_BAD[4],
-                ['<', ['get', 'value'], 45], AIR_GOOD_TO_BAD[3],
-                ['<', ['get', 'value'], 60], AIR_GOOD_TO_BAD[2],
-                ['<', ['get', 'value'], 75], AIR_GOOD_TO_BAD[1],
-                AIR_GOOD_TO_BAD[0],
+                ['<', ['get', 'value'], 30], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 45], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 60], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 75], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'potentiel':
-            // Potentiel 0-100, vert = fort potentiel
+            // Potentiel faible clair, potentiel élevé foncé.
             return [
                 'case',
-                ['<', ['get', 'value'], 35], AIR_GOOD_TO_BAD[4],
-                ['<', ['get', 'value'], 50], AIR_GOOD_TO_BAD[3],
-                ['<', ['get', 'value'], 65], AIR_GOOD_TO_BAD[2],
-                ['<', ['get', 'value'], 80], AIR_GOOD_TO_BAD[1],
-                AIR_GOOD_TO_BAD[0],
+                ['<', ['get', 'value'], 35], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 50], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 65], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 80], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'sante_proximite':
-            // Score 0-100, vert = bon acces sante
             return [
                 'case',
-                ['<', ['get', 'value'], 40], SANTE_COLORS[0],
-                ['<', ['get', 'value'], 55], SANTE_COLORS[1],
-                ['<', ['get', 'value'], 70], SANTE_COLORS[2],
-                ['<', ['get', 'value'], 85], SANTE_COLORS[3],
-                SANTE_COLORS[4],
+                ['<', ['get', 'value'], 40], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 55], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 70], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 85], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'pharmacies':
-            // Nombre de pharmacies, vert = beaucoup
             return [
                 'case',
-                ['<', ['get', 'value'], 30], SANTE_COLORS[0],
-                ['<', ['get', 'value'], 50], SANTE_COLORS[1],
-                ['<', ['get', 'value'], 70], SANTE_COLORS[2],
-                ['<', ['get', 'value'], 90], SANTE_COLORS[3],
-                SANTE_COLORS[4],
+                ['<', ['get', 'value'], 30], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 50], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 70], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 90], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'defibrillateurs':
-            // Densite DAE pour 10k hab (range ~3-25), vert = dense
             return [
                 'case',
-                ['<', ['get', 'value'], 4], SANTE_COLORS[0],
-                ['<', ['get', 'value'], 8], SANTE_COLORS[1],
-                ['<', ['get', 'value'], 15], SANTE_COLORS[2],
-                ['<', ['get', 'value'], 22], SANTE_COLORS[3],
-                SANTE_COLORS[4],
+                ['<', ['get', 'value'], 4], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 8], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 15], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 22], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'urgences':
-            // Temps vers urgences (min), vert = rapide (inverse)
+            // Temps faible clair, temps élevé foncé.
             return [
                 'case',
-                ['>', ['get', 'value'], 9], SANTE_COLORS[0],
-                ['>', ['get', 'value'], 7], SANTE_COLORS[1],
-                ['>', ['get', 'value'], 6], SANTE_COLORS[2],
-                ['>', ['get', 'value'], 5], SANTE_COLORS[3],
-                SANTE_COLORS[4],
+                ['<=', ['get', 'value'], 5], WAIT_LOW_TO_HIGH[0],
+                ['<=', ['get', 'value'], 6], WAIT_LOW_TO_HIGH[1],
+                ['<=', ['get', 'value'], 7], WAIT_LOW_TO_HIGH[2],
+                ['<=', ['get', 'value'], 9], WAIT_LOW_TO_HIGH[3],
+                WAIT_LOW_TO_HIGH[4],
             ];
         default:
             return seqLtExpr(8000, 10000, 12000, 15000);
     }
+}
+
+function getColorExpressionForIndicator(indicator) {
+    const expression = getBaseColorExpressionForIndicator(indicator);
+    if (selectedMesh !== 'iris') return expression;
+    return [
+        'case',
+        ['==', ['get', 'has_data'], false], '#334155',
+        expression,
+    ];
 }
 
 function baseColorAt(value, t1, t2, t3, t4, gte = false) {
@@ -1551,55 +1609,76 @@ function getColorForIndicator(indicator, value) {
         case 'delits':
             return baseColorAt(value, 40, 80, 120, 200, true);
         case 'pollution':
-            if (value <= 2.9) return AIR_GOOD_TO_BAD[0];
-            if (value <= 3.1) return AIR_GOOD_TO_BAD[1];
-            if (value <= 3.2) return AIR_GOOD_TO_BAD[2];
-            if (value <= 3.3) return AIR_GOOD_TO_BAD[3];
-            return AIR_GOOD_TO_BAD[4];
+            if (value <= 2.9) return AIR_LOW_TO_HIGH[0];
+            if (value <= 3.1) return AIR_LOW_TO_HIGH[1];
+            if (value <= 3.2) return AIR_LOW_TO_HIGH[2];
+            if (value <= 3.3) return AIR_LOW_TO_HIGH[3];
+            return AIR_LOW_TO_HIGH[4];
         case 'vegetation':
-            if (value < 200) return VEG_NONE_TO_DENSE[0];
-            if (value < 500) return VEG_NONE_TO_DENSE[1];
-            if (value < 1000) return VEG_NONE_TO_DENSE[2];
-            if (value < 2000) return VEG_NONE_TO_DENSE[3];
-            return VEG_NONE_TO_DENSE[4];
+            if (value < 200) return VEG_LOW_TO_HIGH[0];
+            if (value < 500) return VEG_LOW_TO_HIGH[1];
+            if (value < 1000) return VEG_LOW_TO_HIGH[2];
+            if (value < 2000) return VEG_LOW_TO_HIGH[3];
+            return VEG_LOW_TO_HIGH[4];
         case 'score_global':
-            if (value < 30) return AIR_GOOD_TO_BAD[4];
-            if (value < 45) return AIR_GOOD_TO_BAD[3];
-            if (value < 60) return AIR_GOOD_TO_BAD[2];
-            if (value < 75) return AIR_GOOD_TO_BAD[1];
-            return AIR_GOOD_TO_BAD[0];
+            if (value < 30) return SCORE_LOW_TO_HIGH[0];
+            if (value < 45) return SCORE_LOW_TO_HIGH[1];
+            if (value < 60) return SCORE_LOW_TO_HIGH[2];
+            if (value < 75) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'potentiel':
-            if (value < 35) return AIR_GOOD_TO_BAD[4];
-            if (value < 50) return AIR_GOOD_TO_BAD[3];
-            if (value < 65) return AIR_GOOD_TO_BAD[2];
-            if (value < 80) return AIR_GOOD_TO_BAD[1];
-            return AIR_GOOD_TO_BAD[0];
+            if (value < 35) return SCORE_LOW_TO_HIGH[0];
+            if (value < 50) return SCORE_LOW_TO_HIGH[1];
+            if (value < 65) return SCORE_LOW_TO_HIGH[2];
+            if (value < 80) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'sante_proximite':
-            if (value < 40) return SANTE_COLORS[0];
-            if (value < 55) return SANTE_COLORS[1];
-            if (value < 70) return SANTE_COLORS[2];
-            if (value < 85) return SANTE_COLORS[3];
-            return SANTE_COLORS[4];
+            if (value < 40) return SCORE_LOW_TO_HIGH[0];
+            if (value < 55) return SCORE_LOW_TO_HIGH[1];
+            if (value < 70) return SCORE_LOW_TO_HIGH[2];
+            if (value < 85) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'pharmacies':
-            if (value < 30) return SANTE_COLORS[0];
-            if (value < 50) return SANTE_COLORS[1];
-            if (value < 70) return SANTE_COLORS[2];
-            if (value < 90) return SANTE_COLORS[3];
-            return SANTE_COLORS[4];
+            if (value < 30) return SCORE_LOW_TO_HIGH[0];
+            if (value < 50) return SCORE_LOW_TO_HIGH[1];
+            if (value < 70) return SCORE_LOW_TO_HIGH[2];
+            if (value < 90) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'defibrillateurs':
-            if (value < 4) return SANTE_COLORS[0];
-            if (value < 8) return SANTE_COLORS[1];
-            if (value < 15) return SANTE_COLORS[2];
-            if (value < 22) return SANTE_COLORS[3];
-            return SANTE_COLORS[4];
+            if (value < 4) return SCORE_LOW_TO_HIGH[0];
+            if (value < 8) return SCORE_LOW_TO_HIGH[1];
+            if (value < 15) return SCORE_LOW_TO_HIGH[2];
+            if (value < 22) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'urgences':
-            if (value > 9) return SANTE_COLORS[0];
-            if (value > 7) return SANTE_COLORS[1];
-            if (value > 6) return SANTE_COLORS[2];
-            if (value > 5) return SANTE_COLORS[3];
-            return SANTE_COLORS[4];
+            if (value <= 5) return WAIT_LOW_TO_HIGH[0];
+            if (value <= 6) return WAIT_LOW_TO_HIGH[1];
+            if (value <= 7) return WAIT_LOW_TO_HIGH[2];
+            if (value <= 9) return WAIT_LOW_TO_HIGH[3];
+            return WAIT_LOW_TO_HIGH[4];
         default:
             return MAP_BASE[2];
+    }
+}
+
+function getIrisIndicatorValue(iris, indicator, year) {
+    if (!iris) return null;
+    const yearKey = String(year);
+    switch (indicator) {
+        case 'prix':
+            return iris.immobilier?.[yearKey]?.prix_m2_median ?? null;
+        case 'logements':
+            return iris.logements?.logements_sociaux_pourcentage ?? null;
+        case 'accessibilite':
+            return iris.accessibilite?.[yearKey]?.mois_revenu_pour_50m2_achat ?? null;
+        case 'revenus':
+            return iris.revenus?.niveau_vie_median ?? null;
+        case 'densite':
+            return iris.population?.densite_km2 ?? null;
+        case 'vegetation':
+            return iris.vegetation?.nombre_arbres ?? null;
+        default:
+            return null;
     }
 }
 
@@ -1677,18 +1756,29 @@ function getUrgencesProximite(arrNum) {
     return data ? data.urgences_proximite : 0;
 }
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    })[char]);
+}
+
 // Afficher le tooltip
-function showTooltip(e, arrNum) {
-    const arr = allData.find(a => a.arrondissement === arrNum);
+function showTooltip(e, arrNum, geography = null) {
+    const arr = allData?.find(a => a.arrondissement === arrNum);
     if (!arr) return;
 
     const tooltip = document.getElementById('tooltip');
     const wrapper = document.querySelector('.map-container-wrapper');
     if (!tooltip || !wrapper) return;
 
-    const value = getIndicatorValue(arr, selectedIndicator, selectedYear);
-    const valueLabel = getIndicatorLabel(selectedIndicator, value);
-    const price = arr.statistiques?.prix_m2_actuel;
+    const native = geography?.code_iris ? irisMetrics?.iris?.[geography.code_iris] : null;
+    const value = native
+        ? getIrisIndicatorValue(native, selectedIndicator, selectedYear)
+        : getIndicatorValue(arr, selectedIndicator, selectedYear);
+    const valueLabel = value == null ? 'Non disponible à l’IRIS' : getIndicatorLabel(selectedIndicator, value);
+    const price = native
+        ? native.immobilier?.[String(selectedYear)]?.prix_m2_median
+        : arr.statistiques?.prix_m2_actuel;
 
     const lines = [
         `<div><span class="tooltip-kpi">${getIndicatorName(selectedIndicator)}</span> ${valueLabel}</div>`,
@@ -1696,12 +1786,22 @@ function showTooltip(e, arrNum) {
     if (selectedIndicator !== 'prix' && price != null) {
         lines.push(`<div><span class="tooltip-kpi">Prix/m²</span> ${price.toLocaleString('fr-FR')} €</div>`);
     }
-    if (selectedIndicator !== 'logements' && arr.logements_sociaux_pourcentage != null) {
-        lines.push(`<div><span class="tooltip-kpi">Log. sociaux</span> ${arr.logements_sociaux_pourcentage}%</div>`);
+    const socialHousing = native
+        ? native.logements?.logements_sociaux_pourcentage
+        : arr.logements_sociaux_pourcentage;
+    if (selectedIndicator !== 'logements' && socialHousing != null) {
+        lines.push(`<div><span class="tooltip-kpi">Log. sociaux</span> ${socialHousing}%</div>`);
+    }
+    if (native?.population?.population != null) {
+        lines.push(`<div><span class="tooltip-kpi">Population</span> ${native.population.population.toLocaleString('fr-FR')}</div>`);
     }
 
+    const irisTitle = geography?.code_iris
+        ? `${escapeHtml(geography.nom_iris)} <span class="tooltip-code">${escapeHtml(geography.code_iris)}</span>`
+        : `${arr.arrondissement}<sup>e</sup> arrondissement`;
     tooltip.innerHTML = `
-        <div class="tooltip-title">${arr.arrondissement}<sup>e</sup> arrondissement</div>
+        <div class="tooltip-title">${irisTitle}</div>
+        ${geography?.code_iris ? `<div class="tooltip-mesh">IRIS · ${arrondissementLabel(arr.arrondissement)} arrondissement · données calculées à l’IRIS</div>` : ''}
         <div class="tooltip-content">${lines.join('')}</div>
     `;
 
@@ -1724,12 +1824,17 @@ function hideTooltip() {
 }
 
 // Sélectionner un arrondissement
-function selectArrondissement(arrNum) {
+function selectArrondissement(arrNum, geography = null) {
     selectedArr = arrNum;
-    const arr = allData.find(a => a.arrondissement === arrNum);
+    selectedIris = selectedMesh === 'iris' && geography?.code_iris ? {
+        code_iris: geography.code_iris,
+        nom_iris: geography.nom_iris,
+        type_iris: geography.type_iris,
+    } : null;
+    const arr = allData?.find(a => a.arrondissement === arrNum);
     if (!arr) return;
 
-    updateSelectedInfo(arr);
+    updateSelectedInfo(arr, selectedIris);
     updateCharts();
     if (geoPointsVisible) {
         loadGeoPointsLayer(arrNum);
@@ -1740,7 +1845,7 @@ function selectArrondissement(arrNum) {
     if (coords) {
         map.flyTo({
             center: [coords[1], coords[0]],
-            zoom: 14,
+            zoom: selectedIris ? 15 : 14,
             duration: 1500
         });
     }
@@ -1787,16 +1892,26 @@ function formatAccessibiliteBlock(arr) {
         </div>`;
 }
 
-function updateSelectedInfo(arr) {
+function updateSelectedInfo(arr, iris = null) {
     const infoDiv = document.getElementById('selected-info');
-    const prix = arr.statistiques?.prix_m2_actuel;
-    const variation = arr.evolution_calculee?.variation_pourcentage;
-    const logSoc = arr.logements_sociaux_pourcentage;
-    const qualAir = arr.pollution_qualite_air?.qualite;
-    const delits = arr.delits_enregistres?.delits_par_1000_habitants;
-    const revenu = arr.revenus_moyens?.revenu_median_menage;
-    const densite = arr.densite_population?.densite_km2;
-    const access = arr.accessibilite_logement?.mois_revenu_pour_50m2_achat;
+    const native = iris ? irisMetrics?.iris?.[iris.code_iris] : null;
+    const yearKey = String(selectedYear);
+    const currentRealEstate = native?.immobilier?.[yearKey];
+    const previousRealEstate = native?.immobilier?.[String(selectedYear - 1)];
+    const prix = native ? currentRealEstate?.prix_m2_median : arr.statistiques?.prix_m2_actuel;
+    const variation = native
+        ? (prix && previousRealEstate?.prix_m2_median
+            ? ((prix - previousRealEstate.prix_m2_median) / previousRealEstate.prix_m2_median) * 100
+            : null)
+        : arr.evolution_calculee?.variation_pourcentage;
+    const logSoc = native ? native.logements?.logements_sociaux_pourcentage : arr.logements_sociaux_pourcentage;
+    const qualAir = native ? null : arr.pollution_qualite_air?.qualite;
+    const delits = native ? null : arr.delits_enregistres?.delits_par_1000_habitants;
+    const revenu = native ? native.revenus?.niveau_vie_median : arr.revenus_moyens?.revenu_median_menage;
+    const densite = native ? native.population?.densite_km2 : arr.densite_population?.densite_km2;
+    const access = native
+        ? native.accessibilite?.[yearKey]?.mois_revenu_pour_50m2_achat
+        : arr.accessibilite_logement?.mois_revenu_pour_50m2_achat;
 
     // Calcul des scores
     const globalScore = calculateGlobalScore(arr);
@@ -1814,10 +1929,17 @@ function updateSelectedInfo(arr) {
     infoDiv.innerHTML = `
         <div class="info-content">
             <div class="info-header">
-                <div class="info-title">${arr.arrondissement}<sup>e</sup> Arr.</div>
+                <div class="info-title">${iris ? escapeHtml(iris.nom_iris) : `${arr.arrondissement}<sup>e</sup> Arr.`}</div>
                 <button class="btn-reset" onclick="resetSelection()">Reinitialiser</button>
             </div>
+            ${iris ? `
+            <div class="iris-selection-note">
+                <strong>IRIS ${escapeHtml(iris.code_iris)}</strong>
+                <span>${arrondissementLabel(arr.arrondissement)} arrondissement · contours IGN-INSEE</span>
+                <span>Indicateurs calculés à l'IRIS · aucune valeur héritée</span>
+            </div>` : ''}
 
+            ${!iris ? `
             <div class="global-score">
                 <div class="global-score-label">Score Global Qualite de Vie</div>
                 <div class="global-score-value">${globalScore}</div>
@@ -1831,6 +1953,7 @@ function updateSelectedInfo(arr) {
                 <div class="potentiel-label">Potentiel Plus-Value</div>
                 <div class="potentiel-value ${potentiel.classe}">${potentiel.niveau} (${potentiel.score}/100)</div>
             </div>
+            ` : ''}
 
             <div class="info-item">
                 <span class="info-label">Prix/m2</span>
@@ -1850,11 +1973,11 @@ function updateSelectedInfo(arr) {
             </div>
             <div class="info-item">
                 <span class="info-label">Qualite air</span>
-                <span class="info-value">${qualAir || 'N/A'}</span>
+                <span class="info-value">${qualAir || (iris ? 'Non disponible à l’IRIS' : 'N/A')}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Securite</span>
-                <span class="info-value">${delits != null ? delits.toFixed(0) + ' delits/1000 hab.' : 'N/A'}</span>
+                <span class="info-value">${delits != null ? delits.toFixed(0) + ' delits/1000 hab.' : (iris ? 'Non disponible à l’IRIS' : 'N/A')}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Revenu median</span>
@@ -1864,6 +1987,28 @@ function updateSelectedInfo(arr) {
                 <span class="info-label">Densite</span>
                 <span class="info-value">${densite ? densite.toLocaleString('fr-FR') + ' hab./km2' : 'N/A'}</span>
             </div>
+            ${iris ? `
+            <div class="info-item">
+                <span class="info-label">Population</span>
+                <span class="info-value">${native?.population?.population?.toLocaleString('fr-FR') || 'N/A'}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Transactions ${selectedYear}</span>
+                <span class="info-value">${currentRealEstate?.nombre_transactions ?? 'Seuil non atteint'}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Surface médiane vendue</span>
+                <span class="info-value">${currentRealEstate?.surface_mediane_m2 != null ? currentRealEstate.surface_mediane_m2 + ' m²' : 'N/A'}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Arbres recensés</span>
+                <span class="info-value">${native?.vegetation?.nombre_arbres?.toLocaleString('fr-FR') || '0'}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Taux de pauvreté</span>
+                <span class="info-value">${native?.revenus?.taux_pauvrete != null ? native.revenus.taux_pauvrete + '%' : 'Secret statistique'}</span>
+            </div>` : ''}
+            ${!iris ? `
             <div class="info-item" style="margin-top: 0.5rem; padding-top: 0.8rem; border-top: 2px solid var(--accent);">
                 <span class="info-label" style="color: var(--accent);">Sante Proximite</span>
                 <span class="info-value">${santeScore}/100</span>
@@ -1883,14 +2028,16 @@ function updateSelectedInfo(arr) {
             </div>
             ` : ''}
             ${getTransportsInfoHTML(arr)}
+            ` : ''}
         </div>
     `;
 }
 
 function resetSelection() {
     selectedArr = null;
+    selectedIris = null;
     const infoDiv = document.getElementById('selected-info');
-    infoDiv.innerHTML = '<p class="info-placeholder">Survolez ou cliquez un arrondissement sur la carte</p>';
+    infoDiv.innerHTML = '<p class="info-placeholder">Survolez ou cliquez une zone sur la carte</p>';
     updateCharts();
     // Retirer la surbrillance de la carte
     if (map && map.getLayer('arrondissements-fill')) {
@@ -2003,7 +2150,10 @@ function updateTimelineChart() {
     const arr = selectedArr ? allData.find(a => a.arrondissement === selectedArr) : allData[0];
     if (!arr) return;
 
-    const evolution = arr.evolution_annuelle || [];
+    const native = selectedIris ? irisMetrics?.iris?.[selectedIris.code_iris] : null;
+    const evolution = native
+        ? Object.values(native.immobilier || {}).sort((a, b) => a.annee - b.annee)
+        : (arr.evolution_annuelle || []);
     const labels = evolution.map(e => e.annee);
     const data = evolution.map(e => e.prix_m2_median);
 
@@ -2012,7 +2162,7 @@ function updateTimelineChart() {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Prix/m² médian (€)',
+                label: native ? 'Prix/m² médian IRIS (€)' : 'Prix/m² médian (€)',
                 data: data,
                 borderColor: CHART_THEME.accent,
                 backgroundColor: CHART_THEME.accentSoft,
@@ -2103,8 +2253,17 @@ function updateTypologyChart() {
         return;
     }
 
-    const typology = arr.typologie || {};
-    console.log('Typologie pour arrondissement', arr.arrondissement, ':', typology);
+    const native = selectedIris ? irisMetrics?.iris?.[selectedIris.code_iris] : null;
+    const nativeRooms = native?.logements?.repartition_pieces || null;
+    const nativeTotal = nativeRooms ? Object.values(nativeRooms).reduce((sum, value) => sum + value, 0) : 0;
+    const typology = native ? {
+        repartition_pieces: Object.fromEntries(
+            Object.entries(nativeRooms || {}).map(([key, value]) => [key, nativeTotal ? value / nativeTotal * 100 : 0])
+        ),
+        type_logement: { total_logements: native.logements?.residences_principales || 0 },
+        detail_pieces: {},
+    } : (arr.typologie || {});
+    console.log('Typologie sélectionnée:', typology);
     
     // Utiliser la nouvelle structure : repartition_pieces
     const repartition = typology.repartition_pieces || {};
@@ -2188,6 +2347,8 @@ function updateTransportsChart() {
     if (charts.transports) {
         charts.transports.destroy();
     }
+
+    if (selectedIris) return;
 
     if (!allData || allData.length === 0) {
         return;
@@ -2309,6 +2470,8 @@ function updateSanteChart() {
     if (charts.sante) {
         charts.sante.destroy();
     }
+
+    if (selectedIris) return;
 
     if (typeof SANTE_DATA === 'undefined' || !allData || allData.length === 0) {
         return;
@@ -2532,6 +2695,19 @@ function updateAccessibiliteChart() {
 
 // Configuration des événements
 function setupEventListeners() {
+    document.getElementById('mesh-selector')?.addEventListener('change', async (e) => {
+        selectedMesh = e.target.value === 'iris' ? 'iris' : 'arrondissements';
+        resetSelection();
+        updateMapLegend();
+        const guide = document.querySelector('#map-guide p');
+        if (guide) {
+            guide.innerHTML = selectedMesh === 'iris'
+                ? '<strong>Vue IRIS :</strong> indicateurs calculés depuis DVF, INSEE et Paris Data. Les zones grises signalent une donnée absente ou un seuil DVF non atteint.'
+                : '<strong>Lecture :</strong> une valeur faible est claire, une valeur élevée est foncée ou vive. Cliquez pour le détail. Activez les points DVF ou la timeline pour explorer les ventes et l’évolution annuelle.';
+        }
+        await updateMap();
+    });
+
     // Sélecteur d'année
     document.getElementById('year-selector').addEventListener('change', async (e) => {
         selectedYear = parseInt(e.target.value);
@@ -2727,9 +2903,9 @@ function updateMapLegend() {
         urgences: { title: 'Accès urgences (min)', labels: ['Rapide', 'Lent'] }
     };
     const cfg = configs[selectedIndicator] || configs.prix;
-    const baseGrad = 'linear-gradient(to right, #0c2d48, #0e5a7a, #0e94b8, #38d9f5, #a8ecff)';
-    const santeGrad = 'linear-gradient(to right, #ef4444, #f97316, #fbbf24, #a3e635, #34d399)';
-    const scoreGrad = 'linear-gradient(to right, #ef4444, #f97316, #fbbf24, #a3e635, #34d399)';
+    const gradient = (palette) => `linear-gradient(to right, ${palette.join(', ')})`;
+    const baseGrad = gradient(MAP_BASE);
+    const scoreGrad = gradient(SCORE_LOW_TO_HIGH);
     const gradients = {
         prix: baseGrad,
         logements: baseGrad,
@@ -2740,17 +2916,18 @@ function updateMapLegend() {
         delits: baseGrad,
         revenus: baseGrad,
         transports: baseGrad,
-        pollution: 'linear-gradient(to right, #34d399, #a3e635, #fbbf24, #f97316, #ef4444)',
-        vegetation: 'linear-gradient(to right, #64748b, #94a3b8, #86efac, #22c55e, #14532d)',
+        pollution: gradient(AIR_LOW_TO_HIGH),
+        vegetation: gradient(VEG_LOW_TO_HIGH),
         score_global: scoreGrad,
         potentiel: scoreGrad,
-        sante_proximite: santeGrad,
-        pharmacies: santeGrad,
-        defibrillateurs: santeGrad,
-        urgences: 'linear-gradient(to right, #34d399, #a3e635, #fbbf24, #f97316, #ef4444)',
+        sante_proximite: scoreGrad,
+        pharmacies: scoreGrad,
+        defibrillateurs: scoreGrad,
+        urgences: gradient(WAIT_LOW_TO_HIGH),
     };
     legend.innerHTML = `
         <h4>${cfg.title}</h4>
+        <p class="legend-scale-note">Faible = clair · Élevé = foncé</p>
         <div class="legend-gradient" aria-hidden="true" style="background:${gradients[selectedIndicator] || gradients.prix}"></div>
         <div class="legend-patterns" aria-hidden="true">
             <span class="legend-pattern legend-pattern-low" title="Valeurs basses"></span>
@@ -2787,6 +2964,17 @@ function updateIndicatorFormulaPanel() {
 function updateUniformDataNotice() {
     const el = document.getElementById('uniform-data-notice');
     if (!el || !allData?.length) return;
+    if (selectedMesh === 'iris') {
+        const total = Object.keys(irisMetrics?.iris || {}).length;
+        const available = Object.values(irisMetrics?.iris || {}).filter(
+            (item) => getIrisIndicatorValue(item, selectedIndicator, selectedYear) != null
+        ).length;
+        el.textContent = available
+            ? `Maille IRIS native · ${available}/${total} zones renseignées pour cet indicateur.`
+            : 'Indicateur non disponible à la maille IRIS — aucune valeur d’arrondissement n’est recopiée.';
+        el.classList.remove('hidden');
+        return;
+    }
     const values = allData
         .map((a) => getIndicatorValue(a, selectedIndicator, selectedYear))
         .filter((v) => v != null && !Number.isNaN(v));
