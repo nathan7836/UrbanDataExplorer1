@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Data Explorer — Paris</title>
+    <link rel="stylesheet" href="static/css/style.css?v=20260701b">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script>maplibregl.accessToken = '';</script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0f1420">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header" role="banner">
+            <div class="header-brand">
+                <div class="brand-mark" aria-hidden="true">UDE</div>
+                <div class="header-titles">
+                    <h1>Urban Data Explorer</h1>
+                    <p class="subtitle">Marché du logement · Paris · 20 arrondissements · 992 IRIS</p>
+                    <p id="data-freshness" class="data-freshness" aria-live="polite"></p>
+                </div>
+            </div>
+            <div class="header-controls">
+                <div class="control-group">
+                    <label for="mesh-selector">Maille</label>
+                    <select id="mesh-selector" class="select-modern" aria-label="Sélectionner la maille géographique">
+                        <option value="arrondissements">Arrondissements</option>
+                        <option value="iris">IRIS</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="year-selector">Année</label>
+                    <select id="year-selector" class="select-modern" aria-label="Sélectionner l'année d'analyse">
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                    </select>
+                </div>
+                <button id="compare-mode-btn" class="btn-modern btn-secondary" aria-expanded="false" aria-controls="compare-panel">
+                    Comparer
+                </button>
+                <button id="theme-toggle" class="theme-toggle" aria-label="Changer de theme">
+                    <span class="icon-sun">&#9728;</span>
+                    <span class="icon-moon">&#9790;</span>
+                </button>
+            </div>
+        </header>
+
+        <div id="compare-panel" class="compare-panel hidden" role="region" aria-label="Comparaison d'arrondissements">
+            <div class="compare-content">
+                <h2 class="panel-title">Comparaison</h2>
+                <div class="compare-selectors">
+                    <select id="compare-arr1" class="select-modern" aria-label="Premier arrondissement">
+                        <option value="">Arrondissement A</option>
+                    </select>
+                    <span class="vs-badge">vs</span>
+                    <select id="compare-arr2" class="select-modern" aria-label="Second arrondissement">
+                        <option value="">Arrondissement B</option>
+                    </select>
+                    <button id="compare-execute" class="btn-modern btn-primary">Analyser</button>
+                </div>
+                <div id="compare-results" class="compare-results-grid"></div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <aside class="sidebar" role="complementary" aria-label="Indicateurs et détails">
+                <section class="sidebar-section">
+                    <h2 class="section-label">Vue d'ensemble</h2>
+                    <div id="global-stats" class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Prix médian</span>
+                            <span class="stat-value" id="avg-price">—</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Variation annuelle</span>
+                            <span class="stat-value" id="avg-variation">—</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="sidebar-section">
+                    <h2 class="section-label">Indicateurs</h2>
+                    <div class="indicators-list" role="listbox" aria-label="Selection d'indicateur cartographique">
+                        <div class="indicator-category">Immobilier</div>
+                        <div class="indicator-item active" data-indicator="prix" role="option" tabindex="0" aria-pressed="true">
+                            <span class="indicator-name">Prix au m2</span>
+                        </div>
+                        <div class="indicator-item" data-indicator="loyers" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Loyers</span>
+                        </div>
+                        <div class="indicator-item" data-indicator="logements" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Logements sociaux</span>
+                        </div>
+                        <div class="indicator-item indicator-item--formula" data-indicator="accessibilite" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Accessibilite</span>
+                            <span class="indicator-badge">formule</span>
+                        </div>
+                        <div class="indicator-item indicator-item--formula" data-indicator="tension" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Tension locative</span>
+                            <span class="indicator-badge">formule</span>
+                        </div>
+
+                        <div class="indicator-category">Socio-economique</div>
+                        <div class="indicator-item" data-indicator="revenus" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Revenus</span>
+                        </div>
+                        <div class="indicator-item indicator-item--formula" data-indicator="densite" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Densite</span>
+                            <span class="indicator-badge">formule</span>
+                        </div>
+                        <div class="indicator-item" data-indicator="delits" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Delinquance</span>
+                        </div>
+
+                        <div class="indicator-category">Environnement</div>
+                        <div class="indicator-item indicator-item--formula" data-indicator="pollution" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Qualite de l'air</span>
+                            <span class="indicator-badge">formule</span>
+                        </div>
+                        <div class="indicator-item" data-indicator="vegetation" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Vegetation</span>
+                        </div>
+                        <div class="indicator-item" data-indicator="transports" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Transports</span>
+                        </div>
+
+                        <div class="indicator-category">Sante</div>
+                        <div class="indicator-item indicator-item--formula" data-indicator="sante_proximite" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Sante Proximite</span>
+                            <span class="indicator-badge">formule</span>
+                        </div>
+                        <div class="indicator-item" data-indicator="pharmacies" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Pharmacies</span>
+                        </div>
+                        <div class="indicator-item" data-indicator="defibrillateurs" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Defibrillateurs</span>
+                        </div>
+                        <div class="indicator-item" data-indicator="urgences" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Acces Urgences</span>
+                        </div>
+
+                        <div class="indicator-category">Scores</div>
+                        <div class="indicator-item indicator-item--formula" data-indicator="score_global" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Score Global</span>
+                            <span class="indicator-badge">formule</span>
+                        </div>
+                        <div class="indicator-item indicator-item--formula" data-indicator="potentiel" role="option" tabindex="0" aria-pressed="false">
+                            <span class="indicator-name">Potentiel Plus-Value</span>
+                            <span class="indicator-badge">formule</span>
+                        </div>
+                    </div>
+                    <div id="indicator-formula" class="indicator-formula hidden" role="note" aria-live="polite"></div>
+                </section>
+
+                <section class="sidebar-section sidebar-section--detail">
+                    <h2 class="section-label">Sélection</h2>
+                    <div id="selected-info" class="selected-info">
+                        <p class="info-placeholder">Survolez ou cliquez une zone sur la carte</p>
+                    </div>
+                </section>
+
+                <details class="sidebar-disclaimer" id="limites-mvp">
+                    <summary>Limites du périmètre</summary>
+                    <ul class="limites-list">
+                        <li>Contours : 20 arrondissements ou 992 IRIS officiels IGN-INSEE.</li>
+                        <li>Indicateurs IRIS natifs : DVF, population, revenus, logements et arbres ; les zones sans source fine restent grisées.</li>
+                        <li>Loyers : encadrement Paris, pas le marché locatif complet.</li>
+                        <li>Logements sociaux : taux 2024 + évolution calibrée open data.</li>
+                        <li>Population, logement et Filosofi IRIS : millésime INSEE 2021.</li>
+                        <li>Végétation et transports partiellement simulés.</li>
+                    </ul>
+                </details>
+            </aside>
+
+            <div class="map-container-wrapper">
+                <div id="map-guide" class="map-guide" role="note">
+                    <p><strong>Lecture :</strong> une valeur faible est claire, une valeur élevée est foncée ou vive. Cliquez pour le détail. Activez les points DVF ou la timeline pour explorer les ventes et l'évolution annuelle.</p>
+                    <button type="button" id="map-guide-close" class="map-guide-close" aria-label="Masquer l'aide">×</button>
+                </div>
+                <div id="map" class="map-container" role="application" aria-label="Carte des arrondissements et IRIS de Paris"></div>
+                <div class="map-legend">
+                    <h4>Prix/m² (€)</h4>
+                    <p class="legend-scale-note">Faible = clair · Élevé = foncé</p>
+                    <div class="legend-gradient"></div>
+                    <div class="legend-labels">
+                        <span>8 000</span>
+                        <span>15 000</span>
+                    </div>
+                </div>
+                <div class="map-controls">
+                    <button id="toggle-geo-points" class="control-btn" aria-pressed="false" aria-label="Afficher les points DVF">
+                        Points DVF
+                    </button>
+                    <button id="play-timeline" class="control-btn" aria-label="Lancer l'animation timeline">
+                        Timeline
+                    </button>
+                </div>
+                <div id="tooltip" class="tooltip hidden" role="tooltip"></div>
+            </div>
+        </main>
+
+        <section class="charts-section" aria-label="Analyses détaillées">
+            <header class="charts-header">
+                <h2>Analyses</h2>
+                <p>Évolution temporelle et comparaisons inter-arrondissements</p>
+            </header>
+            <div class="charts-grid">
+                <article class="chart-card">
+                    <h3 class="chart-title">Évolution des prix</h3>
+                    <canvas id="timeline-chart"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">Prix par arrondissement</h3>
+                    <canvas id="comparison-chart"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">Logements sociaux (%)</h3>
+                    <canvas id="logements-sociaux-chart"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">Accessibilité — mois de revenu pour 50 m²</h3>
+                    <canvas id="accessibilite-chart"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">Typologie des logements</h3>
+                    <canvas id="typology-chart"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">Transports publics</h3>
+                    <canvas id="transports-chart"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">Sante de proximite</h3>
+                    <canvas id="sante-chart"></canvas>
+                </article>
+            </div>
+        </section>
+
+        <div id="toast" class="toast hidden" role="alert" aria-live="assertive"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="static/js/paris_detailed_polygons.js"></script>
+    <script src="static/js/paris_official_polygons.js"></script>
+    <script src="static/js/transports_data.js"></script>
+    <script src="static/js/sante_data.js"></script>
+    <script src="static/js/app.js?v=20260701c"></script>
+</body>
+</html>

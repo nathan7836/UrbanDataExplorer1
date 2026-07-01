@@ -1,0 +1,205 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 1, "nom": "1er"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3290, 48.8630], [2.3460, 48.8630], [2.3460, 48.8580], [2.3290, 48.8580], [2.3290, 48.8630]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 2, "nom": "2e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3370, 48.8700], [2.3500, 48.8700], [2.3500, 48.8630], [2.3370, 48.8630], [2.3370, 48.8700]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 3, "nom": "3e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3500, 48.8700], [2.3650, 48.8700], [2.3650, 48.8630], [2.3500, 48.8630], [2.3500, 48.8700]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 4, "nom": "4e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3460, 48.8580], [2.3650, 48.8580], [2.3650, 48.8500], [2.3460, 48.8500], [2.3460, 48.8580]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 5, "nom": "5e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3400, 48.8500], [2.3550, 48.8500], [2.3550, 48.8400], [2.3400, 48.8400], [2.3400, 48.8500]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 6, "nom": "6e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3250, 48.8500], [2.3400, 48.8500], [2.3400, 48.8400], [2.3250, 48.8400], [2.3250, 48.8500]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 7, "nom": "7e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3100, 48.8600], [2.3250, 48.8600], [2.3250, 48.8500], [2.3100, 48.8500], [2.3100, 48.8600]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 8, "nom": "8e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3100, 48.8750], [2.3250, 48.8750], [2.3250, 48.8630], [2.3100, 48.8630], [2.3100, 48.8750]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 9, "nom": "9e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3250, 48.8750], [2.3400, 48.8750], [2.3400, 48.8700], [2.3250, 48.8700], [2.3250, 48.8750]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 10, "nom": "10e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3500, 48.8750], [2.3700, 48.8750], [2.3700, 48.8700], [2.3500, 48.8700], [2.3500, 48.8750]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 11, "nom": "11e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3650, 48.8700], [2.3800, 48.8700], [2.3800, 48.8600], [2.3650, 48.8600], [2.3650, 48.8700]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 12, "nom": "12e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3650, 48.8500], [2.3800, 48.8500], [2.3800, 48.8400], [2.3650, 48.8400], [2.3650, 48.8500]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 13, "nom": "13e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3400, 48.8400], [2.3550, 48.8400], [2.3550, 48.8300], [2.3400, 48.8300], [2.3400, 48.8400]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 14, "nom": "14e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3200, 48.8400], [2.3400, 48.8400], [2.3400, 48.8300], [2.3200, 48.8300], [2.3200, 48.8400]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 15, "nom": "15e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.2900, 48.8450], [2.3100, 48.8450], [2.3100, 48.8350], [2.2900, 48.8350], [2.2900, 48.8450]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 16, "nom": "16e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.2600, 48.8550], [2.2900, 48.8550], [2.2900, 48.8450], [2.2600, 48.8450], [2.2600, 48.8550]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 17, "nom": "17e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3100, 48.8900], [2.3300, 48.8900], [2.3300, 48.8750], [2.3100, 48.8750], [2.3100, 48.8900]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 18, "nom": "18e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3300, 48.8950], [2.3500, 48.8950], [2.3500, 48.8850], [2.3300, 48.8850], [2.3300, 48.8950]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 19, "nom": "19e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3700, 48.8900], [2.3900, 48.8900], [2.3900, 48.8800], [2.3700, 48.8800], [2.3700, 48.8900]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"arrondissement": 20, "nom": "20e"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.3800, 48.8700], [2.4000, 48.8700], [2.4000, 48.8600], [2.3800, 48.8600], [2.3800, 48.8700]
+        ]]
+      }
+    }
+  ]
+}
