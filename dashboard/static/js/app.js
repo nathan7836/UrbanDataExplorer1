@@ -159,12 +159,12 @@ function updateLoadingText(text) {
     const el = document.querySelector('.loading-text');
     if (el) el.textContent = text;
 }
-/** Échelle cyan commune (prix, loyers, logements, etc.) */
-const MAP_BASE = ['#0c2d48', '#0e5a7a', '#0e94b8', '#38d9f5', '#a8ecff'];
-const AIR_GOOD_TO_BAD = ['#34d399', '#a3e635', '#fbbf24', '#f97316', '#ef4444'];
-const VEG_NONE_TO_DENSE = ['#64748b', '#94a3b8', '#86efac', '#22c55e', '#14532d'];
-// Sante: vert = bon acces, rouge = mauvais
-const SANTE_COLORS = ['#ef4444', '#f97316', '#fbbf24', '#a3e635', '#34d399'];
+/** Palettes séquentielles : faible = clair, élevé = foncé ou vif. */
+const MAP_BASE = ['#a8ecff', '#38d9f5', '#0e94b8', '#0e5a7a', '#0c2d48'];
+const AIR_LOW_TO_HIGH = ['#dcfce7', '#86efac', '#fde68a', '#fb923c', '#b91c1c'];
+const VEG_LOW_TO_HIGH = ['#f1f5f9', '#bbf7d0', '#86efac', '#22c55e', '#14532d'];
+const SCORE_LOW_TO_HIGH = ['#fee2e2', '#fdba74', '#fde68a', '#4ade80', '#166534'];
+const WAIT_LOW_TO_HIGH = ['#dcfce7', '#86efac', '#fde68a', '#fb923c', '#b91c1c'];
 
 function seqLtExpr(t1, t2, t3, t4) {
     return [
@@ -1351,7 +1351,7 @@ const INDICATOR_FORMULAS = {
         title: 'Accessibilité à l\'achat',
         formula: '(prix_m² × 50) / (revenu_médian / 12)',
         unit: 'mois de revenu',
-        note: 'Mois de revenu médian nécessaires pour financer 50 m² à l\'achat.',
+        note: 'Mois de revenu médian nécessaires pour financer 50 m² à l\'achat. Plus la valeur est basse, plus l\'effort est faible.',
     },
     densite: {
         title: 'Densité de population',
@@ -1435,80 +1435,77 @@ function getColorExpressionForIndicator(indicator) {
         case 'pollution':
             return [
                 'case',
-                ['<=', ['get', 'value'], 2.9], AIR_GOOD_TO_BAD[0],
-                ['<=', ['get', 'value'], 3.1], AIR_GOOD_TO_BAD[1],
-                ['<=', ['get', 'value'], 3.2], AIR_GOOD_TO_BAD[2],
-                ['<=', ['get', 'value'], 3.3], AIR_GOOD_TO_BAD[3],
-                AIR_GOOD_TO_BAD[4],
+                ['<=', ['get', 'value'], 2.9], AIR_LOW_TO_HIGH[0],
+                ['<=', ['get', 'value'], 3.1], AIR_LOW_TO_HIGH[1],
+                ['<=', ['get', 'value'], 3.2], AIR_LOW_TO_HIGH[2],
+                ['<=', ['get', 'value'], 3.3], AIR_LOW_TO_HIGH[3],
+                AIR_LOW_TO_HIGH[4],
             ];
         case 'vegetation':
             return [
                 'case',
-                ['<', ['get', 'value'], 200], VEG_NONE_TO_DENSE[0],
-                ['<', ['get', 'value'], 500], VEG_NONE_TO_DENSE[1],
-                ['<', ['get', 'value'], 1000], VEG_NONE_TO_DENSE[2],
-                ['<', ['get', 'value'], 2000], VEG_NONE_TO_DENSE[3],
-                VEG_NONE_TO_DENSE[4],
+                ['<', ['get', 'value'], 200], VEG_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 500], VEG_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 1000], VEG_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 2000], VEG_LOW_TO_HIGH[3],
+                VEG_LOW_TO_HIGH[4],
             ];
         case 'score_global':
-            // Score 0-100, vert = mieux
+            // Score faible clair, score élevé foncé.
             return [
                 'case',
-                ['<', ['get', 'value'], 30], AIR_GOOD_TO_BAD[4],
-                ['<', ['get', 'value'], 45], AIR_GOOD_TO_BAD[3],
-                ['<', ['get', 'value'], 60], AIR_GOOD_TO_BAD[2],
-                ['<', ['get', 'value'], 75], AIR_GOOD_TO_BAD[1],
-                AIR_GOOD_TO_BAD[0],
+                ['<', ['get', 'value'], 30], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 45], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 60], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 75], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'potentiel':
-            // Potentiel 0-100, vert = fort potentiel
+            // Potentiel faible clair, potentiel élevé foncé.
             return [
                 'case',
-                ['<', ['get', 'value'], 35], AIR_GOOD_TO_BAD[4],
-                ['<', ['get', 'value'], 50], AIR_GOOD_TO_BAD[3],
-                ['<', ['get', 'value'], 65], AIR_GOOD_TO_BAD[2],
-                ['<', ['get', 'value'], 80], AIR_GOOD_TO_BAD[1],
-                AIR_GOOD_TO_BAD[0],
+                ['<', ['get', 'value'], 35], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 50], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 65], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 80], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'sante_proximite':
-            // Score 0-100, vert = bon acces sante
             return [
                 'case',
-                ['<', ['get', 'value'], 40], SANTE_COLORS[0],
-                ['<', ['get', 'value'], 55], SANTE_COLORS[1],
-                ['<', ['get', 'value'], 70], SANTE_COLORS[2],
-                ['<', ['get', 'value'], 85], SANTE_COLORS[3],
-                SANTE_COLORS[4],
+                ['<', ['get', 'value'], 40], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 55], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 70], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 85], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'pharmacies':
-            // Nombre de pharmacies, vert = beaucoup
             return [
                 'case',
-                ['<', ['get', 'value'], 30], SANTE_COLORS[0],
-                ['<', ['get', 'value'], 50], SANTE_COLORS[1],
-                ['<', ['get', 'value'], 70], SANTE_COLORS[2],
-                ['<', ['get', 'value'], 90], SANTE_COLORS[3],
-                SANTE_COLORS[4],
+                ['<', ['get', 'value'], 30], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 50], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 70], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 90], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'defibrillateurs':
-            // Densite DAE pour 10k hab (range ~3-25), vert = dense
             return [
                 'case',
-                ['<', ['get', 'value'], 4], SANTE_COLORS[0],
-                ['<', ['get', 'value'], 8], SANTE_COLORS[1],
-                ['<', ['get', 'value'], 15], SANTE_COLORS[2],
-                ['<', ['get', 'value'], 22], SANTE_COLORS[3],
-                SANTE_COLORS[4],
+                ['<', ['get', 'value'], 4], SCORE_LOW_TO_HIGH[0],
+                ['<', ['get', 'value'], 8], SCORE_LOW_TO_HIGH[1],
+                ['<', ['get', 'value'], 15], SCORE_LOW_TO_HIGH[2],
+                ['<', ['get', 'value'], 22], SCORE_LOW_TO_HIGH[3],
+                SCORE_LOW_TO_HIGH[4],
             ];
         case 'urgences':
-            // Temps vers urgences (min), vert = rapide (inverse)
+            // Temps faible clair, temps élevé foncé.
             return [
                 'case',
-                ['>', ['get', 'value'], 9], SANTE_COLORS[0],
-                ['>', ['get', 'value'], 7], SANTE_COLORS[1],
-                ['>', ['get', 'value'], 6], SANTE_COLORS[2],
-                ['>', ['get', 'value'], 5], SANTE_COLORS[3],
-                SANTE_COLORS[4],
+                ['<=', ['get', 'value'], 5], WAIT_LOW_TO_HIGH[0],
+                ['<=', ['get', 'value'], 6], WAIT_LOW_TO_HIGH[1],
+                ['<=', ['get', 'value'], 7], WAIT_LOW_TO_HIGH[2],
+                ['<=', ['get', 'value'], 9], WAIT_LOW_TO_HIGH[3],
+                WAIT_LOW_TO_HIGH[4],
             ];
         default:
             return seqLtExpr(8000, 10000, 12000, 15000);
@@ -1551,53 +1548,53 @@ function getColorForIndicator(indicator, value) {
         case 'delits':
             return baseColorAt(value, 40, 80, 120, 200, true);
         case 'pollution':
-            if (value <= 2.9) return AIR_GOOD_TO_BAD[0];
-            if (value <= 3.1) return AIR_GOOD_TO_BAD[1];
-            if (value <= 3.2) return AIR_GOOD_TO_BAD[2];
-            if (value <= 3.3) return AIR_GOOD_TO_BAD[3];
-            return AIR_GOOD_TO_BAD[4];
+            if (value <= 2.9) return AIR_LOW_TO_HIGH[0];
+            if (value <= 3.1) return AIR_LOW_TO_HIGH[1];
+            if (value <= 3.2) return AIR_LOW_TO_HIGH[2];
+            if (value <= 3.3) return AIR_LOW_TO_HIGH[3];
+            return AIR_LOW_TO_HIGH[4];
         case 'vegetation':
-            if (value < 200) return VEG_NONE_TO_DENSE[0];
-            if (value < 500) return VEG_NONE_TO_DENSE[1];
-            if (value < 1000) return VEG_NONE_TO_DENSE[2];
-            if (value < 2000) return VEG_NONE_TO_DENSE[3];
-            return VEG_NONE_TO_DENSE[4];
+            if (value < 200) return VEG_LOW_TO_HIGH[0];
+            if (value < 500) return VEG_LOW_TO_HIGH[1];
+            if (value < 1000) return VEG_LOW_TO_HIGH[2];
+            if (value < 2000) return VEG_LOW_TO_HIGH[3];
+            return VEG_LOW_TO_HIGH[4];
         case 'score_global':
-            if (value < 30) return AIR_GOOD_TO_BAD[4];
-            if (value < 45) return AIR_GOOD_TO_BAD[3];
-            if (value < 60) return AIR_GOOD_TO_BAD[2];
-            if (value < 75) return AIR_GOOD_TO_BAD[1];
-            return AIR_GOOD_TO_BAD[0];
+            if (value < 30) return SCORE_LOW_TO_HIGH[0];
+            if (value < 45) return SCORE_LOW_TO_HIGH[1];
+            if (value < 60) return SCORE_LOW_TO_HIGH[2];
+            if (value < 75) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'potentiel':
-            if (value < 35) return AIR_GOOD_TO_BAD[4];
-            if (value < 50) return AIR_GOOD_TO_BAD[3];
-            if (value < 65) return AIR_GOOD_TO_BAD[2];
-            if (value < 80) return AIR_GOOD_TO_BAD[1];
-            return AIR_GOOD_TO_BAD[0];
+            if (value < 35) return SCORE_LOW_TO_HIGH[0];
+            if (value < 50) return SCORE_LOW_TO_HIGH[1];
+            if (value < 65) return SCORE_LOW_TO_HIGH[2];
+            if (value < 80) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'sante_proximite':
-            if (value < 40) return SANTE_COLORS[0];
-            if (value < 55) return SANTE_COLORS[1];
-            if (value < 70) return SANTE_COLORS[2];
-            if (value < 85) return SANTE_COLORS[3];
-            return SANTE_COLORS[4];
+            if (value < 40) return SCORE_LOW_TO_HIGH[0];
+            if (value < 55) return SCORE_LOW_TO_HIGH[1];
+            if (value < 70) return SCORE_LOW_TO_HIGH[2];
+            if (value < 85) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'pharmacies':
-            if (value < 30) return SANTE_COLORS[0];
-            if (value < 50) return SANTE_COLORS[1];
-            if (value < 70) return SANTE_COLORS[2];
-            if (value < 90) return SANTE_COLORS[3];
-            return SANTE_COLORS[4];
+            if (value < 30) return SCORE_LOW_TO_HIGH[0];
+            if (value < 50) return SCORE_LOW_TO_HIGH[1];
+            if (value < 70) return SCORE_LOW_TO_HIGH[2];
+            if (value < 90) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'defibrillateurs':
-            if (value < 4) return SANTE_COLORS[0];
-            if (value < 8) return SANTE_COLORS[1];
-            if (value < 15) return SANTE_COLORS[2];
-            if (value < 22) return SANTE_COLORS[3];
-            return SANTE_COLORS[4];
+            if (value < 4) return SCORE_LOW_TO_HIGH[0];
+            if (value < 8) return SCORE_LOW_TO_HIGH[1];
+            if (value < 15) return SCORE_LOW_TO_HIGH[2];
+            if (value < 22) return SCORE_LOW_TO_HIGH[3];
+            return SCORE_LOW_TO_HIGH[4];
         case 'urgences':
-            if (value > 9) return SANTE_COLORS[0];
-            if (value > 7) return SANTE_COLORS[1];
-            if (value > 6) return SANTE_COLORS[2];
-            if (value > 5) return SANTE_COLORS[3];
-            return SANTE_COLORS[4];
+            if (value <= 5) return WAIT_LOW_TO_HIGH[0];
+            if (value <= 6) return WAIT_LOW_TO_HIGH[1];
+            if (value <= 7) return WAIT_LOW_TO_HIGH[2];
+            if (value <= 9) return WAIT_LOW_TO_HIGH[3];
+            return WAIT_LOW_TO_HIGH[4];
         default:
             return MAP_BASE[2];
     }
@@ -2727,9 +2724,9 @@ function updateMapLegend() {
         urgences: { title: 'Accès urgences (min)', labels: ['Rapide', 'Lent'] }
     };
     const cfg = configs[selectedIndicator] || configs.prix;
-    const baseGrad = 'linear-gradient(to right, #0c2d48, #0e5a7a, #0e94b8, #38d9f5, #a8ecff)';
-    const santeGrad = 'linear-gradient(to right, #ef4444, #f97316, #fbbf24, #a3e635, #34d399)';
-    const scoreGrad = 'linear-gradient(to right, #ef4444, #f97316, #fbbf24, #a3e635, #34d399)';
+    const gradient = (palette) => `linear-gradient(to right, ${palette.join(', ')})`;
+    const baseGrad = gradient(MAP_BASE);
+    const scoreGrad = gradient(SCORE_LOW_TO_HIGH);
     const gradients = {
         prix: baseGrad,
         logements: baseGrad,
@@ -2740,17 +2737,18 @@ function updateMapLegend() {
         delits: baseGrad,
         revenus: baseGrad,
         transports: baseGrad,
-        pollution: 'linear-gradient(to right, #34d399, #a3e635, #fbbf24, #f97316, #ef4444)',
-        vegetation: 'linear-gradient(to right, #64748b, #94a3b8, #86efac, #22c55e, #14532d)',
+        pollution: gradient(AIR_LOW_TO_HIGH),
+        vegetation: gradient(VEG_LOW_TO_HIGH),
         score_global: scoreGrad,
         potentiel: scoreGrad,
-        sante_proximite: santeGrad,
-        pharmacies: santeGrad,
-        defibrillateurs: santeGrad,
-        urgences: 'linear-gradient(to right, #34d399, #a3e635, #fbbf24, #f97316, #ef4444)',
+        sante_proximite: scoreGrad,
+        pharmacies: scoreGrad,
+        defibrillateurs: scoreGrad,
+        urgences: gradient(WAIT_LOW_TO_HIGH),
     };
     legend.innerHTML = `
         <h4>${cfg.title}</h4>
+        <p class="legend-scale-note">Faible = clair · Élevé = foncé</p>
         <div class="legend-gradient" aria-hidden="true" style="background:${gradients[selectedIndicator] || gradients.prix}"></div>
         <div class="legend-patterns" aria-hidden="true">
             <span class="legend-pattern legend-pattern-low" title="Valeurs basses"></span>

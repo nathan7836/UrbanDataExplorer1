@@ -818,9 +818,16 @@ body::before {
     margin-bottom: 0.35rem;
 }
 
+.legend-scale-note {
+    margin: 0 0 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.62rem;
+    white-space: nowrap;
+}
+
 .legend-gradient {
     height: 6px;
-    background: linear-gradient(to right, #0c2d48, #0e5a7a, #0e94b8, #38d9f5, #a8ecff);
+    background: linear-gradient(to right, #a8ecff, #38d9f5, #0e94b8, #0e5a7a, #0c2d48);
     border-radius: 3px;
     margin-bottom: 0.3rem;
 }
