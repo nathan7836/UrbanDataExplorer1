@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Urban Data Explorer — Paris</title>
-    <link rel="stylesheet" href="static/css/style.css?v=20260624d">
+    <link rel="stylesheet" href="static/css/style.css?v=20260701a">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script>maplibregl.accessToken = '';</script>
@@ -172,12 +172,13 @@
 
             <div class="map-container-wrapper">
                 <div id="map-guide" class="map-guide" role="note">
-                    <p><strong>Lecture :</strong> la carte colore l'indicateur actif. Cliquez pour le détail. Activez les points DVF ou la timeline pour explorer les ventes et l'évolution annuelle.</p>
+                    <p><strong>Lecture :</strong> une valeur faible est claire, une valeur élevée est foncée ou vive. Cliquez pour le détail. Activez les points DVF ou la timeline pour explorer les ventes et l'évolution annuelle.</p>
                     <button type="button" id="map-guide-close" class="map-guide-close" aria-label="Masquer l'aide">×</button>
                 </div>
                 <div id="map" class="map-container" role="application" aria-label="Carte des arrondissements de Paris"></div>
                 <div class="map-legend">
                     <h4>Prix/m² (€)</h4>
+                    <p class="legend-scale-note">Faible = clair · Élevé = foncé</p>
                     <div class="legend-gradient"></div>
                     <div class="legend-labels">
                         <span>8 000</span>
@@ -241,6 +242,6 @@
     <script src="static/js/paris_official_polygons.js"></script>
     <script src="static/js/transports_data.js"></script>
     <script src="static/js/sante_data.js"></script>
-    <script src="static/js/app.js?v=20260626b"></script>
+    <script src="static/js/app.js?v=20260701a"></script>
 </body>
 </html>
